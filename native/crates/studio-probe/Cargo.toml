@@ -1,0 +1,18 @@
+[package]
+name = "studio-probe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = ["hardware"]
+hardware = ["dep:probe-rs"]
+
+[dependencies]
+anyhow.workspace = true
+studio-core = { path = "../studio-core" }
+crossbeam-channel.workspace = true
+probe-rs = { workspace = true, optional = true }
+probe-rs-debug.workspace = true
+serde.workspace = true

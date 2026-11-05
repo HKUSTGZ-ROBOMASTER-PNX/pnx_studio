@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' studio:; img-src 'self' studio: data: blob:; style-src 'self' studio: 'unsafe-inline'; script-src 'self' studio:">
+  <title>Embedded Studio</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/views.css">
+</head>
+<body>
+  <div id="app">
+    <header id="toolbar"></header>
+    <div id="workbench">
+      <nav id="activitybar"></nav>
+      <aside id="sidebar" class="pane"></aside>
+      <div class="splitter vertical" data-target="sidebar" data-edge="left"></div>
+      <main id="center">
+        <section id="editor" class="tabgroup"></section>
+        <div class="splitter horizontal" data-target="panel" data-edge="bottom"></div>
+        <section id="panel" class="tabgroup"></section>
+      </main>
+      <div class="splitter vertical" data-target="inspector" data-edge="right"></div>
+      <aside id="inspector" class="tabgroup"></aside>
+    </div>
+    <footer id="statusbar"></footer>
+  </div>
+  <div id="overlay"></div>
+  <script src="js/web-host.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

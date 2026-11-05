@@ -1,0 +1,11 @@
+{
+  "id": "memory-image",
+  "name": "Memory Image Viewer",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "Render a frame buffer in target RAM (camera, display, sensor arrays) as an image. Supports GRAY8, RGB565, RGB888, RGBA8888, 1-bit and float32 heat maps.",
+  "renderer": "renderer.js",
+  "contributes": {
+    "views": [{ "id": "viewer", "title": "Memory Image", "location": "editor" }]
+  }
+}

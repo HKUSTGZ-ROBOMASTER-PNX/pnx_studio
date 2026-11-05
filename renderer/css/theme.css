@@ -1,0 +1,316 @@
+/* Design tokens. Embedded Dark is the default (:root). Every other theme is a
+   [data-theme] block that only sets its palette; what all light themes share lives
+   under [data-kind="light"]. The registry with names and previews is renderer/js/themes.js.
+   Fonts are bundled (renderer/fonts) so every host — including WSL with no CJK or
+   Inter installed — renders the same typography. */
+@import url("../fonts/fonts.css");
+
+:root {
+  color-scheme: dark;
+  --frame: #090b10;       /* window frame behind floating panes */
+  --bg-0: #0e1117;        /* tab strips, toolbars inside panes */
+  --bg-1: #12151c;        /* editor surface, inputs */
+  --bg-2: #161a22;        /* panes */
+  --bg-3: #1d222c;        /* hover / raised */
+  --bg-4: #262c38;        /* pressed / selected */
+  --line: #1f242e;
+  --line-strong: #2b3240;
+  --fg-0: #e7eaf0;
+  --fg-1: #b3bac7;
+  --fg-2: #7d8697;
+  --fg-3: #545c6c;
+  --accent: #2fd4bd;
+  --accent-strong: #5ce6d2;
+  --accent-ink: #032a24;
+  --accent-soft: rgba(47, 212, 189, 0.12);
+  --accent-glow: rgba(47, 212, 189, 0.35);
+  --brand-a: #2fd4bd;
+  --brand-b: #4f7cff;
+  --ok: #43c98b;
+  --warn: #f0b34e;
+  --err: #f2656b;
+  --info: #6aa5ff;
+  --pc-line: rgba(240, 179, 78, 0.12);
+  --pc-mark: #f0b34e;
+  --bp: #f2656b;
+  --changed: #f0b34e;
+  --syn-kw: #c49bff;
+  --syn-type: #67c6ff;
+  --syn-str: #9fd88a;
+  --syn-num: #ffaa7a;
+  --syn-com: #5b6577;
+  --syn-pp: #ff8fbd;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --radius-sm: 5px;
+  --radius: 7px;
+  --radius-lg: 10px;
+  --gap: 6px;
+  --font-ui: "Inter Variable", "Inter", "Noto Sans SC Variable", "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "Noto Sans SC Variable", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5 5 6.5 8 3.5' fill='none' stroke='%237d8697' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --plot-1: #2fd4bd; --plot-2: #6aa5ff; --plot-3: #ffaa7a; --plot-4: #c49bff;
+  --plot-5: #f0b34e; --plot-6: #ff8fbd; --plot-7: #9fd88a; --plot-8: #f2656b;
+}
+
+:root[data-kind="light"] {
+  color-scheme: light;
+  --brand-a: #13b7a1;
+  --brand-b: #3d6bf0;
+  --shadow-sm: 0 1px 2px rgba(20, 30, 50, 0.08);
+  --shadow: 0 16px 48px rgba(20, 30, 50, 0.16), 0 0 0 1px rgba(20, 30, 50, 0.06);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5 5 6.5 8 3.5' fill='none' stroke='%23687284' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Embedded Light */
+:root[data-theme="light"] {
+  --frame: #e4e8ee;
+  --bg-0: #f5f7fa;
+  --bg-1: #ffffff;
+  --bg-2: #fbfcfd;
+  --bg-3: #eff2f6;
+  --bg-4: #e2e7ee;
+  --line: #e3e7ed;
+  --line-strong: #d0d6df;
+  --fg-0: #161b23;
+  --fg-1: #3a4351;
+  --fg-2: #687284;
+  --fg-3: #9aa3b1;
+  --accent: #0c9e8b;
+  --accent-strong: #08836f;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(12, 158, 139, 0.10);
+  --accent-glow: rgba(12, 158, 139, 0.28);
+  --ok: #1d9a5f;
+  --warn: #b97b10;
+  --err: #d43b42;
+  --info: #2c6ad6;
+  --pc-line: rgba(232, 165, 30, 0.16);
+  --pc-mark: #c58508;
+  --bp: #d43b42;
+  --changed: #b97b10;
+  --syn-kw: #8338c9;
+  --syn-type: #1769c4;
+  --syn-str: #2f8519;
+  --syn-num: #c2561a;
+  --syn-com: #98a1ae;
+  --syn-pp: #bf3477;
+  --plot-1: #0c9e8b; --plot-2: #2c6ad6; --plot-3: #d9661c; --plot-4: #8338c9;
+  --plot-5: #b97b10; --plot-6: #bf3477; --plot-7: #2f8519; --plot-8: #d43b42;
+}
+
+/* VS Code Dark Modern */
+:root[data-theme="vscode-dark"] {
+  --frame: #111111;
+  --bg-0: #181818;
+  --bg-1: #1f1f1f;
+  --bg-2: #1c1c1c;
+  --bg-3: #2a2d2e;
+  --bg-4: #37373d;
+  --line: #2b2b2b;
+  --line-strong: #3c3c3c;
+  --fg-0: #e7e7e7;
+  --fg-1: #cccccc;
+  --fg-2: #9d9d9d;
+  --fg-3: #6e7681;
+  --accent: #0078d4;
+  --accent-strong: #4daafc;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(0, 120, 212, 0.18);
+  --accent-glow: rgba(0, 120, 212, 0.4);
+  --brand-a: #4daafc;
+  --brand-b: #0078d4;
+  --ok: #89d185;
+  --warn: #cca700;
+  --err: #f14c4c;
+  --info: #3794ff;
+  --pc-line: rgba(255, 255, 0, 0.12);
+  --pc-mark: #ffcc00;
+  --bp: #e51400;
+  --changed: #cca700;
+  --syn-kw: #569cd6;
+  --syn-type: #4ec9b0;
+  --syn-str: #ce9178;
+  --syn-num: #b5cea8;
+  --syn-com: #6a9955;
+  --syn-pp: #c586c0;
+  --plot-1: #3794ff; --plot-2: #4ec9b0; --plot-3: #d18616; --plot-4: #b180d7;
+  --plot-5: #cca700; --plot-6: #ce9178; --plot-7: #89d185; --plot-8: #f14c4c;
+}
+
+/* VS Code Light Modern */
+:root[data-theme="vscode-light"] {
+  --frame: #e8e8e8;
+  --bg-0: #f8f8f8;
+  --bg-1: #ffffff;
+  --bg-2: #f8f8f8;
+  --bg-3: #f2f2f2;
+  --bg-4: #e4e6f1;
+  --line: #e5e5e5;
+  --line-strong: #cecece;
+  --fg-0: #1f1f1f;
+  --fg-1: #3b3b3b;
+  --fg-2: #616161;
+  --fg-3: #8b949e;
+  --accent: #005fb8;
+  --accent-strong: #0258a8;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(0, 95, 184, 0.1);
+  --accent-glow: rgba(0, 95, 184, 0.28);
+  --brand-a: #0078d4;
+  --brand-b: #005fb8;
+  --ok: #388a34;
+  --warn: #bf8803;
+  --err: #e51400;
+  --info: #1a85ff;
+  --pc-line: rgba(255, 238, 0, 0.3);
+  --pc-mark: #be8700;
+  --bp: #e51400;
+  --changed: #bf8803;
+  --syn-kw: #0000ff;
+  --syn-type: #267f99;
+  --syn-str: #a31515;
+  --syn-num: #098658;
+  --syn-com: #008000;
+  --syn-pp: #af00db;
+  --plot-1: #005fb8; --plot-2: #267f99; --plot-3: #d18616; --plot-4: #652d90;
+  --plot-5: #bf8803; --plot-6: #a31515; --plot-7: #388a34; --plot-8: #e51400;
+}
+
+/* GitHub Dark */
+:root[data-theme="github-dark"] {
+  --frame: #010409;
+  --bg-0: #0d1117;
+  --bg-1: #0d1117;
+  --bg-2: #0f141b;
+  --bg-3: #161b22;
+  --bg-4: #21262d;
+  --line: #21262d;
+  --line-strong: #30363d;
+  --fg-0: #e6edf3;
+  --fg-1: #c9d1d9;
+  --fg-2: #8d96a0;
+  --fg-3: #6e7681;
+  --accent: #2f81f7;
+  --accent-strong: #58a6ff;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(56, 139, 253, 0.15);
+  --accent-glow: rgba(56, 139, 253, 0.4);
+  --brand-a: #58a6ff;
+  --brand-b: #a371f7;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --err: #f85149;
+  --info: #58a6ff;
+  --pc-line: rgba(187, 128, 9, 0.15);
+  --pc-mark: #d29922;
+  --bp: #f85149;
+  --changed: #d29922;
+  --syn-kw: #ff7b72;
+  --syn-type: #d2a8ff;
+  --syn-str: #a5d6ff;
+  --syn-num: #79c0ff;
+  --syn-com: #8b949e;
+  --syn-pp: #ff7b72;
+  --plot-1: #58a6ff; --plot-2: #3fb950; --plot-3: #d29922; --plot-4: #bc8cff;
+  --plot-5: #39c5cf; --plot-6: #ff7b72; --plot-7: #db61a2; --plot-8: #f0883e;
+}
+
+/* GitHub Dark Dimmed */
+:root[data-theme="github-dimmed"] {
+  --frame: #1c2128;
+  --bg-0: #22272e;
+  --bg-1: #22272e;
+  --bg-2: #252b33;
+  --bg-3: #2d333b;
+  --bg-4: #373e47;
+  --line: #373e47;
+  --line-strong: #444c56;
+  --fg-0: #cdd9e5;
+  --fg-1: #adbac7;
+  --fg-2: #768390;
+  --fg-3: #636e7b;
+  --accent: #539bf5;
+  --accent-strong: #6cb6ff;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(65, 132, 228, 0.15);
+  --accent-glow: rgba(65, 132, 228, 0.4);
+  --brand-a: #6cb6ff;
+  --brand-b: #986ee2;
+  --ok: #57ab5a;
+  --warn: #c69026;
+  --err: #e5534b;
+  --info: #539bf5;
+  --pc-line: rgba(174, 124, 20, 0.15);
+  --pc-mark: #c69026;
+  --bp: #e5534b;
+  --changed: #c69026;
+  --syn-kw: #f47067;
+  --syn-type: #dcbdfb;
+  --syn-str: #96d0ff;
+  --syn-num: #6cb6ff;
+  --syn-com: #768390;
+  --syn-pp: #f47067;
+  --plot-1: #539bf5; --plot-2: #57ab5a; --plot-3: #c69026; --plot-4: #b083f0;
+  --plot-5: #39c5cf; --plot-6: #f47067; --plot-7: #c96198; --plot-8: #e0823d;
+}
+
+/* GitHub Light */
+:root[data-theme="github-light"] {
+  --frame: #eaeef2;
+  --bg-0: #f6f8fa;
+  --bg-1: #ffffff;
+  --bg-2: #ffffff;
+  --bg-3: #f3f4f6;
+  --bg-4: #e7ebef;
+  --line: #d8dee4;
+  --line-strong: #d0d7de;
+  --fg-0: #1f2328;
+  --fg-1: #2f363d;
+  --fg-2: #656d76;
+  --fg-3: #8c959f;
+  --accent: #0969da;
+  --accent-strong: #0550ae;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(9, 105, 218, 0.1);
+  --accent-glow: rgba(9, 105, 218, 0.28);
+  --brand-a: #0969da;
+  --brand-b: #8250df;
+  --ok: #1a7f37;
+  --warn: #9a6700;
+  --err: #d1242f;
+  --info: #0969da;
+  --pc-line: rgba(212, 167, 44, 0.2);
+  --pc-mark: #9a6700;
+  --bp: #d1242f;
+  --changed: #9a6700;
+  --syn-kw: #cf222e;
+  --syn-type: #8250df;
+  --syn-str: #0a3069;
+  --syn-num: #0550ae;
+  --syn-com: #6e7781;
+  --syn-pp: #cf222e;
+  --plot-1: #0969da; --plot-2: #1a7f37; --plot-3: #bc4c00; --plot-4: #8250df;
+  --plot-5: #9a6700; --plot-6: #cf222e; --plot-7: #1b7c83; --plot-8: #bf3989;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--frame); color: var(--fg-0);
+  font: 13px/1.45 var(--font-ui);
+  font-feature-settings: "cv11", "ss01", "tnum";
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  overflow: hidden; user-select: none;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+.mono { font-family: var(--font-mono); font-size: 12px; font-variant-ligatures: none; font-feature-settings: "zero"; }
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; border: 3px solid transparent; background-clip: padding-box; }
+*:hover::-webkit-scrollbar-thumb { background-color: var(--line-strong); }
+::-webkit-scrollbar-thumb:hover { background-color: var(--fg-3) !important; }
+::-webkit-scrollbar-corner, ::-webkit-scrollbar-track { background: transparent; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+svg.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

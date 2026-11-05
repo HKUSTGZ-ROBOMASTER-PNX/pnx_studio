@@ -1,18 +1,95 @@
 {
-  "name": "pnx-platform",
-  "version": "1.1.12",
+  "name": "embedded-studio",
+  "productName": "Embedded Studio",
+  "version": "0.1.0",
+  "description": "Cross-platform embedded debug studio: registers, live plots and stepping over DAPLink / ST-Link with a Rust probe core.",
   "private": true,
-  "type": "module",
   "main": "electron/main.cjs",
+  "license": "MIT",
   "scripts": {
-    "start": "node src/server.mjs",
-    "package:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-electron-win.ps1",
-    "package:release:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-release-win.ps1",
-    "package:electron:host": "node scripts/package-electron.mjs",
-    "test": "node --test test/*.test.mjs"
+    "start": "electron .",
+    "start:mock": "electron . --mock",
+    "build:native": "node scripts/build-native.mjs",
+    "test": "node --test test/*.test.cjs test/*.test.mjs",
+    "dist": "npm run build:native && electron-builder --publish never",
+    "install:windows": "node scripts/install-windows.mjs",
+    "icons": "electron scripts/make-icons.cjs",
+    "web": "node server/serve.cjs"
   },
   "devDependencies": {
-    "@electron/packager": "20.3.0",
-    "electron": "38.8.6"
+    "electron": "38.8.6",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "dev.embedded-studio.app",
+    "productName": "Embedded Studio",
+    "files": [
+      "electron/**",
+      "renderer/**",
+      "plugins/**",
+      "assets/icon.*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/70-embedded-studio-probes.rules",
+        "to": "70-embedded-studio-probes.rules"
+      },
+      {
+        "from": "assets/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "assets/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "assets/icon.ico",
+      "extraResources": [
+        {
+          "from": "bin/win32-${arch}",
+          "to": "bin/win32-${arch}"
+        }
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.png",
+      "extraResources": [
+        {
+          "from": "bin/darwin-${arch}",
+          "to": "bin/darwin-${arch}"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Development",
+      "icon": "assets/icon.png",
+      "extraResources": [
+        {
+          "from": "bin/linux-${arch}",
+          "to": "bin/linux-${arch}"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

@@ -1,0 +1,11 @@
+{
+  "id": "imu-attitude",
+  "name": "IMU Attitude",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "3D attitude view from roll/pitch/yaw variables with configurable sensor axes. Captures a reference pose when streaming starts and tracks zero drift against it.",
+  "renderer": "renderer.js",
+  "contributes": {
+    "views": [{ "id": "view", "title": "IMU Attitude", "location": "editor" }]
+  }
+}

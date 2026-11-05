@@ -1,7 +1,6 @@
-.cache/
-dist/
 node_modules/
-build/
-native/target/
+dist/
 bin/
+native/target/
+.cache/
 *.log

@@ -1,0 +1,18 @@
+[package]
+name = "studio-adapter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+base64 = "0.22"
+studio-core = { path = "../studio-core" }
+studio-probe = { path = "../studio-probe" }
+crossbeam-channel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[[bin]]
+name = "studio-adapter"
+path = "src/main.rs"

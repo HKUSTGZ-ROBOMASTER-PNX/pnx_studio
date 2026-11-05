@@ -1304,45 +1304,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
-name = "pnx-core"
-version = "1.1.12"
-dependencies = [
- "anyhow",
- "gimli 0.31.1",
- "object 0.36.7",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "svd-parser",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "pnx-dap"
-version = "1.1.12"
-dependencies = [
- "base64 0.22.1",
- "crossbeam-channel",
- "pnx-core",
- "pnx-probe",
- "serde",
- "serde_json",
- "serialport",
-]
-
-[[package]]
-name = "pnx-probe"
-version = "1.1.12"
-dependencies = [
- "anyhow",
- "crossbeam-channel",
- "pnx-core",
- "probe-rs",
- "probe-rs-debug",
- "serde",
-]
-
-[[package]]
 name = "polling"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1815,6 +1776,44 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "studio-adapter"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "crossbeam-channel",
+ "serde",
+ "serde_json",
+ "studio-core",
+ "studio-probe",
+]
+
+[[package]]
+name = "studio-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "gimli 0.31.1",
+ "object 0.36.7",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "svd-parser",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "studio-probe"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crossbeam-channel",
+ "probe-rs",
+ "probe-rs-debug",
+ "serde",
+ "studio-core",
 ]
 
 [[package]]

@@ -1,0 +1,12 @@
+{
+  "id": "csv-recorder",
+  "name": "CSV Recorder",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "Stream every sampled channel to a CSV file on disk from the main process, without keeping it in window memory.",
+  "main": "main.cjs",
+  "renderer": "renderer.js",
+  "contributes": {
+    "commands": [{ "id": "csv-recorder:start", "title": "Start CSV recording" }, { "id": "csv-recorder:stop", "title": "Stop CSV recording" }]
+  }
+}

@@ -1,105 +1,132 @@
-# PnX Platform
+# Embedded Studio
 
-PnX Platform 是独立的 Electron 嵌入式开发工作台，集成文件编辑、CMake 构建、探针调试与烧录、实时采样绘图、CSV 记录、图形配置和串口诊断。界面与 Rust 探针后端一同打包，运行时不需要相邻源码仓库，也不会修改用户工程的主程序源码。
+通用的嵌入式调试工作台：Electron 界面 + Rust 探针内核，通过 **DAPLink / CMSIS-DAP** 与 **ST-Link** 连接 Cortex-M 目标，提供寄存器查看、实时曲线、源码级单步调试，并预留插件生态接口。支持 Windows、macOS、Linux 与 WSL 2。
 
-## 安装与打开工程
+由 `pnx_studio` 演化而来：保留其经过实板验证的 Rust 探针内核（probe-rs 0.31 + CMSIS-DAP 批量传输补丁），去掉 PnX 工程专用逻辑，重写了界面与插件体系。
 
-Windows 用户运行 `PnX-Platform-Setup-windows-x64.exe` 选择安装目录，或解压发布的 ZIP，然后启动 `PnX-Platform.exe`。安装包是单文件；安装后的 EXE 需要与同目录的 Electron 运行文件一起保留。首次启动可以不打开工程，模拟采样和串口诊断可直接使用。点击“打开文件夹”选择源码目录后，平台从该目录读取文件、CMake preset、PnX 配置和 ELF。
+![实时曲线](docs/screenshots/streaming.png)
 
-普通嵌入式工程会从 `CMakeLists.txt` / `.cmake` 的可执行目标、引用的 `.ld` 和现有 ELF 自动识别目标，也可在“目标与插件”中手动设置芯片和 ELF，使用变量采集、断点调试与烧录，无需符合 PnX 目录结构。构建可选 CMake preset 或自定义可执行程序及参数；关闭“调试与烧录前构建”可直接使用已有 ELF。PnX Framework 是按工程启用的内置插件，提供板卡配置与架构诊断。平台按 PnX 的 `configs/boards/<board>/params.json` 与 `robot.json` 结构提供图形配置；板卡资源描述和 Schema 随平台打包，不运行工程内的配置导出脚本。
+![单步调试、寄存器与内存图像](docs/screenshots/debugging.png)
 
-### Linux 与 macOS
+## 功能
 
-- Linux x64：解压 `PnX-Platform-linux-x64.tar.gz`，进入目录运行 `./"PnX Platform"`。构建基线为 Ubuntu 22.04，需桌面环境与 GTK3、NSS、ALSA、GBM 系统库。
-- macOS：按 CPU 选择 `PnX-Platform-macOS-arm64.dmg`（Apple Silicon）或 `PnX-Platform-macOS-x64.dmg`（Intel），打开后将应用拖到 Applications。当前为本地临时签名，尚无 Apple Developer ID 签名和公证；系统可能要求在“隐私与安全性”中确认打开。
-- 每个包都内置对应系统和架构的 Rust 后端，运行无需其它工程、Node.js 或 Rust。固件编译仍需本机的 CMake、Ninja 和 Arm 工具链。macOS 桌面启动支持 Homebrew 默认路径。
-- Linux 普通桌面用户连接探针前，可在解压目录执行以下操作，然后拔插探针。规则仅覆盖 ST-Link 与产品名称含 CMSIS-DAP 的设备；其它探针参考 [probe-rs 权限配置](https://probe.rs/docs/getting-started/probe-setup/)。串口还需拥有对应设备的访问权限。
+| 区域 | 功能 |
+| --- | --- |
+| 连接 | 扫描探针（CMSIS-DAP / DAPLink / ST-Link / J-Link），芯片型号自动补全（probe-rs 内置全部目标），SWD/JTAG、时钟、复位下连接；三种模式：**调试**（可选先烧录 → 复位 → 保持运行；不勾选烧录则附加不打断运行）、**启动**（可选先烧录 → 复位 → 运行到 `main`）、**监视**（只读采样，绝不暂停或写入目标）；镜像未变化时自动跳过擦写；会话中点击“烧录”会重启会话再烧录，暂停状态下也能烧录新固件并重新加载符号；内置**模拟目标**，无硬件也能体验全部视图 |
+| 寄存器 | 内核寄存器 R0–R12/SP/LR/PC/xPSR/MSP/PSP/特殊寄存器，单步后高亮变化，xPSR 标志位解码，Hex/Dec/Bin 切换，可选实时轮询 |
+| 外设 | 加载 CMSIS-SVD，按外设/寄存器筛选，读取并按位域解码，位图显示，双击编辑寄存器或位域（读-改-写），1 位字段双击翻转 |
+| 曲线 | 从 ELF 的 DWARF 中选择全局变量，最高数十 kHz 流式采样；同一页内可放多个曲线并拖动排布（拖到边缘拆分、拖到中间交换、拖动分隔条调整大小，网格/堆叠/并排预设），同步时间轴时作为子图（subplot）显示：只有最底部显示时间轴、子图工具栏收起为悬停按钮，暂停/时间窗/采样率在画布工具栏统一设置，整体导出为一个 CSV（统一时间列）和一张 PNG；多曲线页、拖拽添加、min/max 抽稀保证尖峰可见、十字光标读数、滚轮缩放时间窗、Shift+滚轮缩放 Y、拖动回看、暂停、CSV/PNG 导出 |
+| 调试 | 继续/暂停/单步跳过/进入/跳出/复位；源码视图（大文件虚拟滚动、语法高亮、行号区断点、PC 行标记、暂停时悬停求值）；调用栈；DWARF 路径与本地工程路径自动对应（编译机路径不同也能找到源文件） |
+| 监视 / 内存 / 控制台 | 变量监视（双击写入，可直接添加结构体/数组并展开成员；变量分组，可按分组或单个变量暂停采样而保留在列表中，行可在分组间拖动）、内存十六进制视图（8/16/32 位、变化高亮、自动刷新）、表达式求值控制台 |
+| 体验 | 7 种颜色主题（Embedded 深色/浅色、VS Code Dark/Light Modern、GitHub Dark / Dark Dimmed / Light，设置中预览切换，工具栏按钮在同系列深浅间切换），中英文界面，命令面板 `Ctrl/Cmd+Shift+P`，可调整布局并记忆，工作区级配置（连接参数、曲线、监视、SVD）自动保存 |
+
+内置三个插件：
+
+- **Memory Image Viewer**：把目标 RAM 中的帧缓冲（摄像头、显示屏、传感器阵列）按 GRAY8 / RGB565 / RGB888 / RGBA8888 / 1-bit / float32 热力图绘制成图像，可实时刷新、导出 PNG。
+- **IMU Attitude**（顶部工具栏立方体图标打开）：手动选择 Roll / Pitch / Yaw 变量（可自动识别），按传感器轴映射（默认前 X、左 Y、上 Z，可调）显示 3D 姿态；开始采样时记录初始位姿作为参考，实时显示各轴 Δ、零漂速率（°/min，最小二乘拟合）和漂移曲线，可随时重新记录零点。模拟目标自带 `imu` 结构体用于体验。
+- **CSV Recorder**：在“录制”面板中选择要录制的变量（+ 添加或从「变量」/「监视」拖入），录制器自行保持这些变量的采样并只写这些列；不选则录制所有正在采样的通道。在主进程中直接写入 CSV 文件，长时间记录不占用窗口内存。
+
+## 架构
+
+```
+┌──────────────────────── Electron ─────────────────────────┐
+│ renderer/ (沙箱窗口, ES modules, 无构建步骤)              │
+│   shell · 视图 · session 控制器 · 插件 API (renderer 半)  │
+│              ▲ contextBridge: window.host                 │
+│ electron/main.cjs                                         │
+│   IPC · studio:// 协议 · 插件宿主 (main 半)               │
+│   core/adapter.cjs ── DAP(JSON, stdio) ──┐                │
+│                    ◄─ 二进制采样流(TCP) ─┤                │
+└──────────────────────────────────────────┼────────────────┘
+                                           ▼
+             native/ studio-adapter (Rust)
+               studio-core   ELF/DWARF 符号、行号表、SVD、表达式
+               studio-probe  Backend trait · probe-rs 后端 · 模拟后端 · 采样 worker
+               vendor/probe-rs  CMSIS-DAP 事务批处理补丁
+```
+
+- **控制面**使用 Debug Adapter Protocol，并扩展了 `studio/*` 请求（`coreRegisters`、`readRegisters`、`readValues`、`writeValue`、`setSubscriptions`、`flash`、`loadSvd` 等）与 `studio.*` 事件。因此 `studio-adapter` 本身也可以被 VS Code 等 DAP 客户端使用。
+- **数据面**是独立的本地 TCP 通道，传输 `CKIT` 二进制采样批次（10 ms 合并），避免高频数据挤占调试命令。
+- 渲染进程开启 `sandbox` + `contextIsolation`，只能通过 `window.host` 访问主进程能力。
+
+## 平台支持
+
+| 系统 | 说明 |
+| --- | --- |
+| Windows x64 | CMSIS-DAP v2 / DAPLink 免驱；ST-Link 需安装 ST 官方 USB 驱动（STSW-LINK009）。 |
+| macOS (Intel / Apple Silicon) | 免驱。未签名构建首次打开需在“隐私与安全性”中确认。 |
+| Linux x64 | 安装 udev 规则后重新插拔探针：`sudo install -m 644 assets/70-embedded-studio-probes.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger`。 |
+| WSL 2 | WSL 没有直接的 USB 访问。在管理员 PowerShell 中 `usbipd list`、`usbipd bind --busid <id>`（一次）和 `usbipd attach --wsl --busid <id>`（每次插拔），WSL 内再安装上面的 udev 规则。界面通过 WSLg 显示，需要 `sudo apt install libnss3 libasound2t64 libgtk-3-0 libgbm1`；界面字体（Inter、JetBrains Mono、Noto Sans SC）已随应用打包，无需另装中文字体。也可以直接运行 Windows 版并通过 `\\wsl$\` 打开工程。 |
+
+欢迎页会自动识别当前系统（包括 WSL）并给出对应的探针权限提示。
+
+## 开发
+
+需要 Node.js 20+ 与 Rust（stable，≥ 1.85）。
 
 ```sh
-sudo install -m 644 70-pnx-probes.rules /etc/udev/rules.d/70-pnx-probes.rules
-sudo udevadm control --reload-rules
-sudo udevadm trigger
+npm install
+npm run build:native   # 编译 Rust 内核并放到 bin/<platform>-<arch>/
+npm start              # 启动；npm run start:mock 启动后自动连接模拟目标
+npm test               # Node 测试（含对真实 studio-adapter 的端到端模拟会话）
+cargo test --manifest-path native/Cargo.toml --workspace --exclude probe-rs
 ```
 
-Linux/macOS 的真实硬件烧录、调试和采样性能尚待各平台实板验证，CI 使用模拟后端验证应用运行。
+界面冒烟测试会启动完整应用、执行脚本场景并截图：
 
-## 主要功能
-
-- 编辑器支持多文件标签、C/C++、Python 轻量高亮和 Markdown 预览、文件和行号跳转、定义查找、断点，以及底部多标签输出面板。
-- 构建使用当前打开工程的 CMake preset，最多并行 8 路。产物保存在该工程的 `build/<preset>/`（如 `build/Debug`、`build/Release`），重复构建直接复用；检测到迁移后的缓存路径不匹配时使用 CMake `--fresh` 重新配置。
-- 支持 ST-Link 和 DAPLink / CMSIS-DAP。探针连接、调试和烧录使用平台自带的 Rust 后端。真实目标的变量目录需要与固件匹配、包含 DWARF 信息的 ELF。
-- “探针与烧录”中的“检查 ST-Link 驱动”可读取 Windows 已接入设备的错误码、驱动版本及 INF，提供 ST 官方下载入口。未接入或查询失败时无法判断驱动是否已安装；设备状态正常也不代表 SWD 连接正常。
-- 添加变量后自动采集并更新监看表，默认不绘图；仅明确分配到曲线的变量参与绘制，也可通过刷新图标读取快照。写入开放给源码中能确认显式初始化的可写全局标量，以及显式初始化全局结构体中的直接标量成员（含嵌套成员和数组元素），写入前校验声明文件未改变。支持 `Config config{...}`、`Config config = {...}`、`Config config{}`；仅有成员默认值而对象声明无显式初始化、条件编译、宏声明、指针、常量及无法确定的类型保持只读；源码晚于 ELF 时需重新编译并连接。
-- 命中断点或单步暂停时，编辑器显示当前 PC、源码行和黄色执行箭头；调试工具栏提供暂停、继续和单步按钮。调试区可批量读取 `can_diag_bus` 总线状态，或查看带类型的全局状态字段，并对当前 PnX 的 `types::status` 数值给出名称。局部函数返回值尚未纳入快照；无法匹配工程源码时仍显示 PC。
-- 实时曲线支持搜索添加全局变量、多 Plot 排布、缩放、暂停、拖动回看、PNG 导出和 CSV 连续记录。超过 256 路变量时自动轮换采集，单路刷新率会随组数下降。图表最多以 30 FPS 绘制，界面显示实际采样速率。
-- 图形配置支持应用参数、Robot 电机、资源绑定和硬件概览；保存前检查磁盘版本，最终配置仍以 CMake 校验为准。
-- USART 请求/响应诊断由内置 Rust 后端执行，不需要 Python 或工程中的诊断脚本；需要串口适配器和匹配的板端固件。CAN 诊断变量可从 ELF 变量目录中搜索添加。
-
-### 实时曲线预览
-
-![实时曲线总览](docs/screenshots/realtime-curves-overview.png)
-
-![悬停查看时间戳与变量值](docs/screenshots/curve-hover-tooltip.png)
-
-![曲线名称、时间窗、变量与颜色配置](docs/screenshots/curve-configuration.png)
-
-曲线页左侧的“采集与导出配置”可分别勾选参与采样的变量和 CSV 导出列，并设置请求采样率。未参与采样的变量仍保留在监看配置中。开始记录时应用当前采样配置；CSV 保存完整采样，首列默认是从 1 开始的 `sample_index`，也可选择从 0 开始的相对秒数 `elapsed_s` 或原始纳秒时间 `timestamp_ns`。保存变量查看配置时，这些选项一并写入 `pnx-watch.json`。超过单组容量的变量轮换采集，未在当前组采样的列留空。
-
-烧录使用独立的 SWD 时钟，默认请求 24000 kHz，实际频率由探针支持的档位决定；目标未应答时依次以 8000、4000、1000、400 kHz 重连。后端先核对目标内容，完全相同的固件跳过重复擦写；有差异时执行擦写并保留写后校验。此后端优化需要重新编译 `pnx-dap`，实际耗时取决于探针、板卡和固件大小。
-
-固件编译需要系统安装 CMake 3.24+、Ninja 和 Arm GNU Toolchain。可在“设置与构建 → 设备工具 → 配置与构建”检测本机工具并配置路径。运行工作台、模拟采样和串口诊断不需要这些编译工具。
-
-## 固件日志
-
-选择与板上固件匹配的含 DWARF ELF 并连接真实目标后，在调试诊断的“快速检查”中选择“固件日志”，点击“读取快照”。支持当前 PnX 定长 RAM logger，按最新到最旧显示序号、ThreadX tick、等级、状态、数值和消息，同时显示启动次数与容量。读取复用 SWD，不需要额外串口，不暂停目标，也不清空或写入目标内存；烧录会话和模拟目标不可读取。日志变化导致快照不一致时会提示重新读取，避免显示半写入记录。
-
-RAM logger 不消耗 Flash 擦写寿命，不保证断电保存；断电持久化需要固件另行实现，本视图不自动增加 Flash 日志。若 ELF 缺少日志符号或记录布局不匹配，平台明确报错，不猜测内存地址。该功能修改源码后需重新启动源码工作台或重新打包应用。
-
-## 安全边界
-
-当前版本没有电机参数辨识、运动命令或急停功能。断开探针不等于电机停机。烧录前平台会要求确认；板卡启用 `motor_demo` 时会再次确认。ST-Link 只读采样已在当前板卡验证；烧录、调试控制和串口诊断仍需按目标固件验证。
-
-## 从源码构建
-
-Windows 打包需要 Node.js、Rust 与本机缓存的 Electron 38.8.6。执行：
-
-```powershell
-npm run package:win
-npm run package:release:win
+```sh
+node scripts/smoke.mjs scripts/smoke/streaming.js out.png
+node scripts/smoke.mjs scripts/smoke/debugging.js out.png
 ```
 
-第二条命令生成单文件安装包和 ZIP。macOS/Linux 可运行 `npm install` 和 `npm run package:electron:host`；对应系统需安装 Rust、Node.js 和平台编译依赖，硬件连接尚未在本机验证。源码开发可先构建 `native/` 中的 `pnx-dap`，再运行 `npm start`，通过终端给出的本地地址访问工作台。
+### 浏览器模式（命令行启动，浏览器渲染）
 
-## 验证
-
-`npm test` 运行 Node 回归测试；`cargo test --manifest-path native/Cargo.toml --workspace` 运行 Rust 测试。打包后可运行：
-
-```powershell
-node scripts/electron-standalone-smoke.mjs <PnX-Platform.exe 路径> <空数据目录>
-node scripts/electron-ui-smoke.mjs <PnX-Platform.exe 路径>
+```sh
+./studio-web            # 或 npm run web；参数：--port 7420、--no-open、--mock
 ```
 
-前者验证空工作区启动、文件夹选择入口和内置模拟后端；后者验证编辑器、配置和曲线交互。硬件压力测试脚本为 `scripts/stlink-stress.mjs`，只读采样，不执行烧录或电机控制。
+启动本地服务（只监听 127.0.0.1，每次运行生成随机访问令牌），并自动用默认浏览器打开界面。在 WSL 中会打开 **Windows 的浏览器**，文字按 Windows 的 DPI 原生渲染，不经过 WSLg 缩放，所以清晰。Rust 内核、文件访问和插件都在服务端（WSL 内）运行；浏览器里的“打开文件/文件夹”使用页内路径选择器，浏览的是服务端的文件系统。刷新页面或新开标签页会接管正在运行的调试会话。按 Ctrl+C 停止服务。
 
-## GitHub Actions 发布
+### WSLg 下窗口发虚
 
-`.github/workflows/release.yml` 在推送 `vMAJOR.MINOR.PATCH` 标签时构建 Windows x64 安装 EXE/ZIP、Linux x64 tar.gz、macOS Intel/Apple Silicon DMG 及校验清单。四个平台全部通过测试后创建 GitHub Release。构建仅使用本仓库，所需 Rust、MinGW 和 Electron 由 runner 安装；Electron 下载校验 SHA256。
+Windows 缩放大于 100% 时，WSLg 会把按 1× 绘制的窗口整体放大，所以发虚。可选办法：
 
-首次启用时，先提交并推送 workflow 到默认分支。在 Actions → Build and publish release → Run workflow 中输入已有标签（如 `v1.0.0`）即可补发；构建会检出该标签的代码，并从标签统一写入 package.json、Rust workspace 与内部包的 Cargo.lock 版本；工作流不回写提交。新发布先运行 `node scripts/release-version.mjs v1.1.3`（换成目标版本），提交后创建并推送同名标签。不要重复使用已有失败标签；旧标签保留原始代码及工作流，直接重跑无法获取后续修复。重跑已有 Release 会更新同名附件。发布 job 使用仓库自带的 `GITHUB_TOKEN`，无需个人 token；仓库需允许 GitHub Actions 运行。
+1. 使用上面的浏览器模式，或安装 Windows 版（见下节）。推荐。
+2. 关闭 WSLg 自身的 HiDPI 拉伸，让应用自己按比例绘制：在 `%USERPROFILE%\.wslgconfig` 写入
 
+   ```ini
+   [system]
+   WESTON_RDP_HI_DPI_SCALING=false
+   ```
 
-## 插件与重构边界
+   执行 `wsl --shutdown` 后，用 `STUDIO_SCALE=2 npm start` 启动（数值等于 Windows 缩放比例，例如 150% 用 1.5）。注意：这会影响所有 WSL 图形程序，其他程序会变小。
+3. 也可以尝试 `npm start -- --ozone-platform=wayland`，作为原生 Wayland 客户端运行。在部分 WSLg 版本上会卡住，因此默认不启用。
 
-v1.0.0 使用编译时插件注册表 `src/plugins/registry.mjs`。插件导出 `manifest`（唯一 id、名称、API 版本、能力）、`detect(root)` 与可选的 `resolveProjectTarget(root, preset, buildDirectory)`。新增工程适配器后在注册表加入模块，重新打包即可随应用分发，并在“目标与插件”中按工程启停。探针连接、采集与调试生命周期始终由核心管理。
+### 在 WSL 里开发，从 Windows 资源管理器启动
 
-PnX 后端模块和 Schema 位于 `src/plugins/pnx/`，配置页面及诊断视图位于 `web/plugins/pnx/`，旧顶层副本已移除。项目设置保存在应用数据目录的 projects 缓存中，不向固件工程注入源码。关闭 PnX 插件后其配置 API 不可操作，但通用目标、采样和调试仍可使用。
+在 WSL 中执行一条命令，即可交叉编译 Windows 版 Rust 内核、打包 Windows 版 Electron，安装到 `%LOCALAPPDATA%\Programs\Embedded Studio`，并创建开始菜单和桌面快捷方式：
 
-这一版支持随平台编译的工程适配插件；尚未提供任意第三方插件包的运行时安装、隔离进程 SDK 或 MCU 实验固件插件。既有 ELF 调试仍要求后端支持芯片，并且 ELF 与目标程序匹配；普通工程已使用 wbr_2026 与 Horco CMSIS-DAP 做 12 路、5 秒只读采集验证（约 978 S/s，0 丢帧）；其它目标及调试控制仍需分别验证。
+```sh
+rustup target add x86_64-pc-windows-gnu
+sudo apt install gcc-mingw-w64-x86-64   # 无 sudo 时可将 mingw-w64 的 deb 解包到 ~/.local/opt/mingw
+npm run install:windows                 # 只改了界面/JS 时加 -- --skip-native 跳过 Rust 编译
+```
 
-自动识别不读取 launch.json 或 .ioc。静态解析 CMake 的简单变量、可执行目标和链接脚本引用，按目标名筛选有效 ELF；唯一候选自动选取，多个候选通过“重新识别”后的下拉框选择。芯片信息不足或冲突时保留手动输入，不根据 RAM/FLASH 容量猜型号。复杂 CMake 表达式不保证解析；识别也不能保证所选 ELF 已烧录到板上。
+Windows 版直接使用 Windows 的 USB 栈访问探针，无需 usbipd；工程可放在 `\\wsl$\<发行版>\...` 下直接打开。每次修改后重新运行该命令即可覆盖安装（会先关闭正在运行的实例）。
 
-### 变量查看配置
+打包：`npm run dist`（electron-builder；Windows 生成 NSIS 安装包与 ZIP，macOS 生成 DMG，Linux 生成 AppImage 与 tar.gz）。`.github/workflows/build.yml` 在四个平台上构建、测试、冒烟并上传产物。
 
-曲线页的“保存配置”将当前查看方案写入工程根目录 `pnx-watch.json`（`format: "pnx-watch"`、`version: 1`）。保存变量完整名称、仅监看/曲线分配、自定义曲线颜色、曲线组与顺序、排列、各曲线时间窗和请求采样率，不保存地址、变量写入权限或采样数据。
+## 插件
 
-断开连接保留查看列表与布局；重新连接按新 ELF 的完整变量名匹配并恢复采集。未找到或重名的变量保留为待匹配项，不提交采样。打开工程自动加载该文件，也可点击“加载”重新读取；点击“保存配置”更新文件。CSV 数据记录仍独立保存。
+插件是包含 `plugin.json` 的文件夹，可同时有运行在主进程的 `main`（Node.js）与运行在窗口中的 `renderer`（ES module）两部分，可以贡献视图（编辑区 / 底部面板 / 检查器 / 侧边栏）、命令、工具栏按钮，订阅采样流，访问调试会话，甚至提供替代的调试内核（任何实现同一 DAP 扩展的可执行文件）。
+
+用户插件放在 `<数据目录>/plugins/`（插件侧栏中可直接打开该目录），同 id 会覆盖内置插件。完整 API 与示例见 [docs/PLUGINS.md](docs/PLUGINS.md)。
+
+## 已知限制
+
+- 调用栈目前只返回当前帧（PC 对应的源码行），尚未做栈回溯；局部变量视图尚未实现，悬停/控制台求值支持全局变量及其表达式。
+- 反汇编请求目前是占位实现。
+- 探针内核沿用 pnx_studio：其 ST-Link 与 CMSIS-DAP 只读采样曾在 Windows 实板上验证；烧录、单步等调试控制，以及 macOS / Linux / WSL 上的实板连接，在本仓库中尚未经过硬件验证。本仓库的自动测试使用模拟后端。
+- 插件与应用同权限运行（与 VS Code 扩展相同的信任模型），请只安装可信插件。
+
+界面字体 Inter、JetBrains Mono 与 Noto Sans SC 以 SIL OFL 1.1 授权随应用分发，见 `renderer/fonts/LICENSE-*.txt`。

@@ -1,0 +1,77 @@
+name: Build
+
+on:
+  push:
+    branches: ['main']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            asset: windows-x64
+          - runner: ubuntu-22.04
+            asset: linux-x64
+          - runner: macos-15-intel
+            asset: macos-x64
+          - runner: macos-14
+            asset: macos-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libudev-dev libgtk-3-0 libnss3 libasound2 libgbm1 xvfb
+      - run: npm ci
+      - name: Rust tests
+        run: cargo test --locked --manifest-path native/Cargo.toml --workspace --exclude probe-rs
+      - name: Build Rust core
+        run: npm run build:native
+      - name: Node tests (includes end-to-end mock adapter session)
+        run: npm test
+      - name: UI smoke test
+        env:
+          CI: '1'
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then RUN="xvfb-run -a"; fi
+          $RUN node scripts/smoke.mjs scripts/smoke/streaming.js smoke-streaming.png
+          $RUN node scripts/smoke.mjs scripts/smoke/debugging.js smoke-debugging.png
+      - name: Package
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: embedded-studio-${{ matrix.asset }}
+          path: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.tar.gz
+            smoke-*.png
+          if-no-files-found: error

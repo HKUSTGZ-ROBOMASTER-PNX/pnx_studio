@@ -2,11 +2,11 @@
 
 ## probe-rs 0.31.0
 
-PnX Platform includes the modified `probe-rs` 0.31.0 source originally vendored by Cortex Kit from
+Embedded Studio (derived from PnX Platform) includes the modified `probe-rs` 0.31.0 source originally vendored by Cortex Kit from
 <https://github.com/probe-rs/probe-rs> at upstream revision
 `4f008cdf4829e6e2004eb1facb4e553f76ead6ed`.
 
-The upstream project is available under `MIT OR Apache-2.0`. PnX Platform
+The upstream project is available under `MIT OR Apache-2.0`. Embedded Studio
 distributes its vendored copy under the MIT option. The complete notice is in
 `vendor/probe-rs/LICENSE-MIT`:
 

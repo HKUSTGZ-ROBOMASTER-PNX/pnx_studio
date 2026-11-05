@@ -1,13 +1,13 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/pnx-core",
-    "crates/pnx-probe",
-    "crates/pnx-dap",
+    "crates/studio-core",
+    "crates/studio-probe",
+    "crates/studio-adapter",
 ]
 
 [workspace.package]
-version = "1.1.12"
+version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"

@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# Start Embedded Studio in browser mode and open it in the default browser.
+# Under WSL this opens the Windows browser (crisp HiDPI text, no WSLg scaling).
+#   ./studio-web [--port 7420] [--no-open] [--mock]
+here="$(cd "$(dirname "$0")" && pwd)"
+if command -v node >/dev/null 2>&1; then
+  exec node "$here/server/serve.cjs" "$@"
+fi
+# No system Node: reuse VS Code's server Node, or Electron running as plain Node.
+vscode_node="$(ls -d "$HOME"/.vscode-server/bin/*/node 2>/dev/null | head -n 1)"
+if [ -n "$vscode_node" ]; then
+  exec "$vscode_node" "$here/server/serve.cjs" "$@"
+fi
+if [ -x "$here/node_modules/electron/dist/electron" ]; then
+  ELECTRON_RUN_AS_NODE=1 exec "$here/node_modules/electron/dist/electron" "$here/server/serve.cjs" "$@"
+fi
+echo "Node.js not found. Install it (e.g. sudo apt install nodejs) and retry." >&2
+exit 1
