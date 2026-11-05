@@ -1,4 +1,5 @@
 mod protocol;
+mod auto_id;
 
 use std::{
     collections::HashMap,
@@ -24,6 +25,17 @@ use protocol::{DapReader, DapWriter, start_data_server};
 
 fn main() {
     let arguments = env::args().collect::<Vec<_>>();
+    if arguments.iter().any(|arg| arg == "--auto-id-list") {
+        if let Err(error) = auto_id::list_ports() {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if arguments.iter().any(|arg| arg == "--auto-id-capture") {
+        if !auto_id::run(&arguments) { std::process::exit(1); }
+        return;
+    }
     if arguments.iter().any(|arg| arg == "--list-probes") {
         println!(
             "{}",

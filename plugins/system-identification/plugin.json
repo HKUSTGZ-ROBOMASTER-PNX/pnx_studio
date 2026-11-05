@@ -1,0 +1,13 @@
+{
+  "id": "system-identification",
+  "name": "Gimbal System Identification",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "Run or analyze the V1 yaw gimbal identification experiment.",
+  "main": "main.cjs",
+  "renderer": "renderer.js",
+  "contributes": {
+    "views": [{ "id": "view", "title": "System Identification", "location": "editor" }],
+    "commands": [{ "id": "system-identification:open", "title": "Open System Identification" }]
+  }
+}

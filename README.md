@@ -26,6 +26,7 @@
 - **IMU Attitude**（顶部工具栏立方体图标打开）：手动选择 Roll / Pitch / Yaw 变量（可自动识别），按传感器轴映射（默认前 X、左 Y、上 Z，可调）显示 3D 姿态；开始采样时记录初始位姿作为参考，实时显示各轴 Δ、零漂速率（°/min，最小二乘拟合）和漂移曲线，可随时重新记录零点。模拟目标自带 `imu` 结构体用于体验。
 - **CSV Recorder**：在“录制”面板中选择要录制的变量（+ 添加或从「变量」/「监视」拖入），录制器自行保持这些变量的采样并只写这些列；不选则录制所有正在采样的通道。在主进程中直接写入 CSV 文件，长时间记录不占用窗口内存。
 - **PnX Template Configuration**：打开 PnX STM32 模板工程后，点击工具栏的模板配置按钮或在命令面板运行“打开模板配置”，按模块和板卡编辑 `configs/user_config.json`。板卡资源从工程中的板级定义读取；保存时检查参数、资源冲突及文件是否被外部修改，并保留未知字段。保存只更新 JSON，构建工程时会重新生成配置头文件；也可在工程目录执行 `cmake -P configs/scripts/generate_config.cmake`。模板脚本是最终校验依据。
+- **Gimbal System Identification**：在命令面板运行“打开系统辨识”，或通过工具栏进入。插件支持分析已有的 Auto-ID V1 `raw.csv`，也支持选择串口和新的输出文件，启动 Yaw 轴实验；在线模式需要目标固件实现 `AUTO_ID_START` / `AUTO_ID_ABORT` 协议，默认 921600 波特。实验会驱动云台运动约 40 秒，中止按钮发送固件停止请求，不能代替急停。原始 CSV 与元数据保存在选定路径，辨识使用电流**指令**和角速度拟合一阶模型及延迟，并展示拟合度、饱和与丢样信息。只有提供经过标定、带符号的力矩/指令换算系数时才计算 J 和 B。没有元数据的离线文件使用 V1 默认时长和基线比例，丢样数未知；该插件目前仅针对参考工程的 Yaw V1 格式，不是通用电机辨识工具。
 
 ## 架构
 
@@ -116,6 +117,20 @@ npm run install:windows                 # 只改了界面/JS 时加 -- --skip-na
 Windows 版直接使用 Windows 的 USB 栈访问探针，无需 usbipd；工程可放在 `\\wsl$\<发行版>\...` 下直接打开。每次修改后重新运行该命令即可覆盖安装（会先关闭正在运行的实例）。
 
 打包：`npm run dist`（electron-builder；Windows 生成 NSIS 安装包与 ZIP，macOS 生成 DMG，Linux 生成 AppImage 与 tar.gz）。`.github/workflows/build.yml` 在四个平台上构建、测试、冒烟并上传产物。
+
+### 发布 GitHub Release
+
+普通的 `main` 推送和 Pull Request 只运行构建并上传 Actions 产物。推送 `vMAJOR.MINOR.PATCH` 格式的版本标签时，工作流会使用标签版本打包；四个平台全部通过后才创建或更新对应的 GitHub Release，并附上各平台安装包与 SHA-256 校验文件。
+
+先提交并推送需要发布的代码和工作流，再为该提交创建一个尚未使用的标签，例如：
+
+```sh
+git push origin main
+git tag v1.1.13
+git push origin v1.1.13
+```
+
+请根据已有标签选择实际版本号；标签指向的提交必须包含发布工作流和要发布的更改。重跑同一标签的工作流会更新同名附件。需要在仓库设置中允许 GitHub Actions 使用 `GITHUB_TOKEN` 写入内容；具体构建状态可在 Actions 中查看。
 
 ## 插件
 

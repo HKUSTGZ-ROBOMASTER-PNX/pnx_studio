@@ -12,6 +12,7 @@ studio-probe = { path = "../studio-probe" }
 crossbeam-channel.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serialport = { version = "4.10.1", default-features = false }
 
 [[bin]]
 name = "studio-adapter"

@@ -1786,6 +1786,7 @@ dependencies = [
  "crossbeam-channel",
  "serde",
  "serde_json",
+ "serialport",
  "studio-core",
  "studio-probe",
 ]
