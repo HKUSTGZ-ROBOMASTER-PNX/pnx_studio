@@ -1,0 +1,162 @@
+{
+    "usb": {
+        "enabled": false
+    },
+    "ui": {
+        "timeout_ms": 100
+    },
+    "ps2": {
+        "deadzone": 0.02,
+        "spi_timeout_ms": 20
+    },
+    "boards": {
+        "h723_mc02": {
+            "ui_uart": "usart1",
+            "dr16_uart": "uart5",
+            "vt03_uart": "uart7",
+            "ps2_cs": "ps2_cs",
+            "ps2_spi": "spi1",
+            "dmimu_can": "fdcan1",
+            "ahrs_device": "bmi088",
+            "bmi088_thermal": {
+                "target": 45.0,
+                "boost": 0.06,
+                "reboost": 0.05,
+                "approach_start": 0.044,
+                "approach_end": 0.029,
+                "hold_max": 0.04,
+                "kp": 300.0,
+                "ki": 0.06,
+                "kd": 100.0,
+                "max_out": 90.0
+            },
+            "referee_uart": "usart1",
+            "remoter_dr16_enabled": true,
+            "remoter_vt03_enabled": true,
+            "remoter_ps2_enabled": true,
+            "bmi088_heater_enabled": true,
+            "rfid_uart": "usart10",
+            "buzzer_timer": "tim12",
+            "buzzer_channel": 2
+        },
+        "f407_cboard": {
+            "ui_uart": "none",
+            "dr16_uart": "usart3",
+            "vt03_uart": "usart6",
+            "ps2_cs": "none",
+            "ps2_spi": "none",
+            "dmimu_can": "can1",
+            "ahrs_device": "bmi088",
+            "bmi088_thermal": {
+                "target": 45.0,
+                "boost": 0.06,
+                "reboost": 0.05,
+                "approach_start": 0.044,
+                "approach_end": 0.029,
+                "hold_max": 0.04,
+                "kp": 650.0,
+                "ki": 0.08,
+                "kd": 10.0,
+                "max_out": 900.0
+            },
+            "referee_uart": "none",
+            "remoter_dr16_enabled": true,
+            "remoter_vt03_enabled": true,
+            "remoter_ps2_enabled": false,
+            "bmi088_heater_enabled": false,
+            "rfid_uart": "usart1",
+            "buzzer_timer": "tim4",
+            "buzzer_channel": 3
+        }
+    },
+    "dmimu": {
+        "can_id": 1,
+        "master_id": 17,
+        "mode": "active",
+        "assembly_timeout_ms": 20,
+        "offline_timeout_ms": 100
+    },
+    "ahrs": {
+        "thread_priority": 3,
+        "sample_period_ticks": 1,
+        "max_dt": 0.02,
+        "retry_period_ms": 1000,
+        "warmup_timeout_ms": 60000,
+        "calibrate_on_start": false,
+        "dmimu_wait_ticks": 1,
+        "dmimu_request_period_ms": 10,
+        "dmimu_queue_frames": 32,
+        "bmi088_stack_size": 8192,
+        "dmimu_stack_size": 2048,
+        "eskf": {
+            "gyro_noise": 0.0003,
+            "gyro_bias_walk": 2e-05,
+            "accel_noise": 0.0006,
+            "accel_magnitude_gain": 1.0,
+            "nis_gate": 9.21,
+            "reject_timeout": 0.2,
+            "impact_jerk": 400.0,
+            "impact_hold": 0.05,
+            "static_accel_tolerance": 0.05,
+            "static_gyro_tolerance": 0.02,
+            "static_filter_time_constant": 0.05,
+            "zero_rate_min_time": 1.0,
+            "initial_tilt_stddev": 0.1,
+            "initial_yaw_stddev": 0.001,
+            "initial_bias_stddev": 0.01,
+            "min_bias_stddev": 0.0002
+        },
+        "gyro_offset": [
+            -0.005280993487,
+            -0.000237223741,
+            -0.000647540528
+        ],
+        "accel_offset": [
+            0.0038458286072392397,
+            0.00647039594993548,
+            0.014968990490337293
+        ]
+    },
+    "referee": {
+        "thread_priority": 6,
+        "period_ticks": 1,
+        "offline_timeout_ms": 1000,
+        "stack_size": 2048
+    },
+    "remoter": {
+        "thread_priority": 4,
+        "period_ticks": 1,
+        "offline_timeout_ms": 100,
+        "ps2_period_ms": 10,
+        "stack_size": 2048
+    },
+    "bmi088_heater": {
+        "period_ms": 125,
+        "timeout_ms": 500,
+        "stable_time_ms": 2000,
+        "stable_tolerance": 0.5,
+        "thread_priority": 2,
+        "stack_size": 2048
+    },
+    "application": {
+        "imu_offset": [
+            0.0,
+            0.0,
+            0.0
+        ]
+    },
+    "rfid": {
+        "address": 32,
+        "block": 4,
+        "baud": 9600,
+        "priority": 8,
+        "stack_size": 2048,
+        "startup_ms": 1000,
+        "poll_ms": 120,
+        "timeout_ms": 300,
+        "recovery_ms": 1000,
+        "buzzer_period_us": 333,
+        "buzzer_on_ms": 100,
+        "buzzer_gap_ms": 100
+    }
+}

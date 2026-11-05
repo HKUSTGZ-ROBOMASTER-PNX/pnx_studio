@@ -1,0 +1,13 @@
+{
+  "id": "pnx-template",
+  "name": "PnX Template Configuration",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "Graphical configuration editor for PnX STM32 template workspaces.",
+  "main": "main.cjs",
+  "renderer": "renderer.js",
+  "contributes": {
+    "views": [{ "id": "configuration", "title": "Template Configuration", "location": "editor" }],
+    "commands": [{ "id": "pnx-template:open", "title": "Open Template Configuration" }]
+  }
+}

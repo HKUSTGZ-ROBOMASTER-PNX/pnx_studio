@@ -20,7 +20,7 @@ function tempPlugins(manifests) {
 test('bundled plugins have valid manifests', () => {
   const { plugins, errors } = discover([{ directory: path.join(__dirname, '..', 'plugins'), source: 'builtin' }]);
   assert.deepEqual(errors, []);
-  assert.deepEqual(plugins.map(p => p.id).sort(), ['csv-recorder', 'imu-attitude', 'memory-image']);
+  assert.deepEqual(plugins.map(p => p.id).sort(), ['csv-recorder', 'imu-attitude', 'memory-image', 'pnx-template']);
 });
 
 test('discover rejects bad ids, API mismatches and escaping entry points', () => {
