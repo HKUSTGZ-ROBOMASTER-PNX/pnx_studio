@@ -17,6 +17,7 @@ function subscribe(channel, handler) {
 contextBridge.exposeInMainWorld('host', {
   info: () => call('host:info'),
   settings: { get: () => call('settings:get'), set: patch => call('settings:set', patch) },
+  update: { check: () => call('update:check'), download: () => call('update:download'), show: () => call('update:show'), apply: () => call('update:apply') },
   dialog: {
     openFolder: title => call('dialog:openFolder', title),
     openFile: options => call('dialog:openFile', options),

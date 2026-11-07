@@ -9,6 +9,7 @@ const platform = require('./platform.cjs');
 const core = require('./adapter.cjs');
 const { PluginHost } = require('./plugins.cjs');
 const workspace = require('./workspace.cjs');
+const { createUpdater } = require('./update.cjs');
 
 /**
  * @param {object} host
@@ -27,6 +28,7 @@ const workspace = require('./workspace.cjs');
  * @param {boolean} [host.startMock]
  */
 function createBackend(host) {
+  const updater = createUpdater({ version: host.version, userData: host.userData });
   const settingsFile = path.join(host.userData, 'settings.json');
   let settings = {};
   const loadSettings = () => { try { settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8')); } catch { settings = {}; } };
@@ -127,6 +129,7 @@ function createBackend(host) {
       ...platform.describeHost(),
       version: host.version,
       runtime: host.runtime,
+      canInstallUpdate: !!host.applyUpdate,
       electron: process.versions.electron || null,
       adapter: adapterPath(),
       startMock: !!host.startMock,
@@ -136,6 +139,16 @@ function createBackend(host) {
     }),
     'settings:get': () => settings,
     'settings:set': patch => { settings = { ...settings, ...patch }; saveSettings(); return settings; },
+    'update:check': () => updater.check(),
+    'update:download': () => updater.download(),
+    'update:show': () => host.showItem(updater.downloaded()),
+    'update:apply': async () => {
+      if (session) throw new Error('Disconnect the target before installing an update');
+      if (!host.applyUpdate) throw new Error('Automatic installation is not available on this platform');
+      const file = await updater.verified();
+      if (session) throw new Error('Disconnect the target before installing an update');
+      return host.applyUpdate(file);
+    },
     'dialog:openFolder': nativeDialog('openFolder'),
     'dialog:openFile': nativeDialog('openFile'),
     'dialog:saveFile': nativeDialog('saveFile'),

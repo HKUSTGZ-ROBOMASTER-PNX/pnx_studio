@@ -5,6 +5,35 @@ import { workspace } from '../workspace.js';
 import { openConnectDialog, connectWith, connectionProfile } from './connection.js';
 import { openPlot } from './plot-board.js';
 import { t } from '../i18n.js';
+import { modal, notify } from '../shell.js';
+
+async function checkUpdates(hostInfo) {
+  try {
+    const result = await window.host.update.check();
+    if (!result.available) { notify(t('You are using the latest version.'), 'ok'); return; }
+    const status = h('p', { class: 'muted' }, t('Update {latest} is available (current: {current}).', result));
+    const download = h('button', { class: 'btn primary', onclick: async () => {
+      download.disabled = true;
+      status.textContent = t('Downloading and verifying update…');
+      try {
+        const file = await window.host.update.download();
+        status.textContent = t('Update downloaded and verified: {file}', { file: file.path });
+        download.hidden = true;
+        show.hidden = false;
+        if (hostInfo.canInstallUpdate) install.hidden = false;
+        else status.textContent += ` ${t('Open the downloaded package to install it.')}`;
+      } catch (error) { status.textContent = `${t('Update failed')}: ${error.message}`; download.disabled = false; }
+    } }, t('Download update'));
+    const show = h('button', { class: 'btn', hidden: true, onclick: () => window.host.update.show().catch(error => notify(error.message, 'error')) }, t('Show downloaded file'));
+    const install = h('button', { class: 'btn primary', hidden: true, onclick: () => {
+      const closeConfirm = modal({ title: t('Install update'), body: h('p', null, t('The application will close and install the update. Disconnect your target and save your work first.')), footer: [
+        h('button', { class: 'btn', onclick: () => closeConfirm() }, t('Cancel')),
+        h('button', { class: 'btn primary', onclick: async () => { try { await window.host.update.apply(); closeConfirm(); } catch (error) { notify(`${t('Update failed')}: ${error.message}`, 'error'); } } }, t('Install and quit')),
+      ] });
+    } }, t('Install update'));
+    modal({ title: t('Check for updates'), body: status, footer: [show, download, install] });
+  } catch (error) { notify(`${t('Update failed')}: ${error.message}`, 'error'); }
+}
 
 const SHORTCUTS = [
   ['F5', 'Connect / Continue'], ['Shift+F5', 'Disconnect'], ['F6', 'Pause'], ['F10', 'Step over'],
@@ -29,6 +58,7 @@ export function createWelcome(hostInfo) {
           action('plug', t('Connect to target…'), t('Choose probe, chip and firmware'), () => openConnectDialog()),
           action('chip', t('Try the simulated target'), t('No hardware needed — explore every view'), () => connectWith({ ...connectionProfile(), mock: true, mode: 'attach' })),
           action('chart', t('New plot'), t('Stream variables at up to tens of kHz'), () => openPlot()),
+          action('refresh', t('Check for updates'), t('Download the latest release'), () => checkUpdates(hostInfo)),
           h('h3', null, t('Recent')), recent),
         h('section', null,
           h('h3', null, t('This machine')),

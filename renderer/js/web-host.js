@@ -54,6 +54,7 @@
     web: true,
     info: () => call('host:info'),
     settings: { get: () => call('settings:get'), set: patch => call('settings:set', patch) },
+    update: { check: () => call('update:check'), download: () => call('update:download'), show: () => call('update:show'), apply: () => call('update:apply') },
     dialog: {
       openFolder: title => picker('folder', { title }),
       openFile: options => picker('file', options),

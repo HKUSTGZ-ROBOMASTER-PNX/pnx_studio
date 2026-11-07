@@ -6,6 +6,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const platform = require('./core/platform.cjs');
 const { createBackend } = require('./core/backend.cjs');
+const { spawn, execFileSync } = require('node:child_process');
 
 const APP_ROOT = path.join(__dirname, '..');
 const RENDERER_ROOT = path.join(APP_ROOT, 'renderer');
@@ -37,6 +38,18 @@ if (process.platform === 'win32') app.setAppUserModelId('dev.embedded-studio.app
 let window = null;
 let backend = null;
 
+// A ZIP or the WSL copy installer has no NSIS registry entry. Never run its
+// updater silently: NSIS would otherwise install a separate copy elsewhere.
+function isRegisteredNsisInstall() {
+  if (process.platform !== 'win32' || !app.isPackaged) return false;
+  try {
+    // electron-builder UUID.v5(appId, its fixed NSIS namespace).
+    const output = execFileSync('reg.exe', ['query', 'HKCU\\Software\\5ede8cf5-1d0a-5d83-86d7-89175285b57d', '/v', 'InstallLocation'], { encoding: 'utf8', windowsHide: true, timeout: 3000 });
+    const match = /^\s*InstallLocation\s+REG_\w+\s+(.+)$/mi.exec(output);
+    return !!match && path.resolve(match[1].trim()).toLowerCase() === path.dirname(process.execPath).toLowerCase();
+  } catch { return false; }
+}
+
 function send(channel, payload) {
   if (window && !window.isDestroyed()) window.webContents.send(channel, payload);
 }
@@ -67,6 +80,11 @@ function createElectronBackend() {
     openExternal: url => shell.openExternal(url),
     showItem: file => shell.showItemInFolder(file),
     openPath: folder => shell.openPath(folder),
+    applyUpdate: isRegisteredNsisInstall() ? file => new Promise((resolve, reject) => {
+      const installer = spawn(file, ['/S'], { detached: true, stdio: 'ignore', windowsHide: true });
+      installer.once('error', reject);
+      installer.once('spawn', () => { installer.unref(); resolve(true); setImmediate(() => app.quit()); });
+    }) : null,
     reloadUi: () => window?.webContents.reload(),
   });
 }
