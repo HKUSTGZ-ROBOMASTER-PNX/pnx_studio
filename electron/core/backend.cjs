@@ -116,7 +116,7 @@ function createBackend(host) {
 
   function loadPlugins() {
     plugins.load([
-      { directory: path.join(host.appRoot, 'plugins'), source: 'builtin' },
+      { directory: path.join(host.resourcesPath || host.appRoot, 'plugins'), source: 'builtin' },
       { directory: pluginFolder, source: 'user' },
     ], settings.disabledPlugins || []);
   }

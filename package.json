@@ -26,11 +26,14 @@
     "files": [
       "electron/**",
       "renderer/**",
-      "plugins/**",
       "assets/icon.*",
       "package.json"
     ],
     "extraResources": [
+      {
+        "from": "plugins",
+        "to": "plugins"
+      },
       {
         "from": "assets/70-embedded-studio-probes.rules",
         "to": "70-embedded-studio-probes.rules"
@@ -85,6 +88,7 @@
       ]
     },
     "nsis": {
+      "include": "assets/installer.nsh",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

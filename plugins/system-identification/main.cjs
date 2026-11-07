@@ -6,10 +6,14 @@ const path = require('node:path');
 const readline = require('node:readline');
 const { spawn, execFile } = require('node:child_process');
 const { Worker } = require('node:worker_threads');
-const { resolveAdapter } = require('../../electron/core/platform.cjs');
+// Packaged plugins live in resources/plugins, next to app.asar; in development
+// they live under the source tree. Resolve the core from the appropriate root.
+const sourceRoot = path.resolve(__dirname, '../..');
+const APP_ROOT = fs.existsSync(path.join(sourceRoot, 'electron', 'core', 'platform.cjs'))
+  ? sourceRoot : path.join(process.resourcesPath, 'app.asar');
+const { resolveAdapter } = require(path.join(APP_ROOT, 'electron', 'core', 'platform.cjs'));
 
 const V1_METADATA = Object.freeze({ pitch_rad: 0, T: 40, buffer_ratio: 0.2, f_start: 1, f_end: 50, amp_max: 0.05, omega_max: 1.7, alpha_max: 100, current_limit: 25000 });
-const APP_ROOT = path.resolve(__dirname, '../..');
 let state = { phase: 'idle', file: null, port: null, samples: 0, metadata: null, stats: null, error: null, result: null };
 let contextRef = null;
 let child = null;

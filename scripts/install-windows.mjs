@@ -1,12 +1,15 @@
 // From WSL: build the Windows x64 app and install it into the Windows user profile,
 // with Start-menu and desktop shortcuts so it launches from Explorer like any app.
 //
-// Usage (inside WSL, repo root):  node scripts/install-windows.mjs [--skip-native] [--no-shortcuts]
+// Usage (inside WSL, repo root):  node scripts/install-windows.mjs [--skip-native] [--no-shortcuts] [--plugins=all|none|id,id]
 //
 // Needs: the Rust target x86_64-pc-windows-gnu and a MinGW-w64 gcc
 // (`x86_64-w64-mingw32-gcc` on PATH, or unpacked under ~/.local/opt/mingw/usr/bin).
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createInterface } from 'node:readline/promises';
+import { stdin, stdout } from 'node:process';
+import { PLUGINS, parseSelection, readSelection, formatSelection } from './plugin-selection.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,6 +31,39 @@ function windows(command, commandArgs) {
 if (!/microsoft/i.test(os.release()) && !process.env.WSL_DISTRO_NAME) {
   console.error('This script installs a Windows build from WSL. On Windows itself run `npm run dist` instead.');
   process.exit(2);
+}
+
+// Read the previous choice before replacing the installation. Non-interactive runs
+// preserve it, or install all plugins on a fresh install.
+const localAppData = windows('cmd.exe', ['/d', '/c', 'echo %LOCALAPPDATA%']);
+const installWin = `${localAppData}\\Programs\\${APP_NAME}`;
+const installWsl = windows('wslpath', ['-u', installWin]);
+const selectionFile = path.join(installWsl, 'resources', 'plugin-selection.ini');
+let selected = new Set(PLUGINS.map(([id]) => id));
+if (existsSync(selectionFile)) {
+  try { selected = readSelection(readFileSync(selectionFile, 'utf8')); }
+  catch (error) { console.error(`Cannot read plugin selection: ${error.message}`); process.exit(1); }
+}
+const selectionArg = args.find(arg => arg.startsWith('--plugins='));
+if (selectionArg) {
+  try { selected = parseSelection(selectionArg.slice('--plugins='.length)); }
+  catch (error) { console.error(error.message); process.exit(2); }
+} else if (stdin.isTTY && stdout.isTTY) {
+  console.log('Optional plugins (comma-separated numbers, all, none; Enter keeps current choice):');
+  PLUGINS.forEach(([id, name], i) => console.log(`  ${i + 1}. [${selected.has(id) ? 'x' : ' '}] ${name} (${id})`));
+  const prompt = createInterface({ input: stdin, output: stdout });
+  const answer = (await prompt.question('Selection: ')).trim();
+  prompt.close();
+  if (answer) {
+    try {
+      const choices = answer === 'all' || answer === 'none' ? answer : answer.split(',').map(part => {
+        const index = Number(part.trim()) - 1;
+        if (!Number.isInteger(index) || !PLUGINS[index]) throw new Error(`Invalid plugin number: ${part}`);
+        return PLUGINS[index][0];
+      }).join(',');
+      selected = parseSelection(choices);
+    } catch (error) { console.error(error.message); process.exit(2); }
+  }
 }
 
 // ---------------------------------------------------------------- 1. Rust core for Windows
@@ -60,14 +96,17 @@ run(process.execPath, [path.join(root, 'node_modules', 'electron-builder', 'cli.
 const unpacked = path.join(root, 'dist', 'win-unpacked');
 
 // ---------------------------------------------------------------- 3. Install into %LOCALAPPDATA%\Programs
-const localAppData = windows('cmd.exe', ['/d', '/c', 'echo %LOCALAPPDATA%']);
-const installWin = `${localAppData}\\Programs\\${APP_NAME}`;
-const installWsl = windows('wslpath', ['-u', installWin]);
 step(`Installing to ${installWin}`);
-spawnSync('taskkill.exe', ['/IM', `${APP_NAME}.exe`, '/F'], { cwd: '/mnt/c', stdio: 'ignore' });
-// taskkill returns before Windows releases file locks; retry the delete briefly.
+const running = windows('tasklist.exe', ['/FI', `IMAGENAME eq ${APP_NAME}.exe`, '/NH']);
+if (running.toLowerCase().includes(`${APP_NAME.toLowerCase()}.exe`)) {
+  console.error(`Close ${APP_NAME} before installing, then run this command again.`);
+  process.exit(1);
+}
+// Retry if a recently closed application has not yet released its files.
 rmSync(installWsl, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
 cpSync(unpacked, installWsl, { recursive: true });
+for (const [id] of PLUGINS) if (!selected.has(id)) rmSync(path.join(installWsl, 'resources', 'plugins', id), { recursive: true, force: true });
+writeFileSync(selectionFile, formatSelection(selected));
 
 // ---------------------------------------------------------------- 3b. Optional: exe icon + version info
 // The window/taskbar icon is set at runtime. To also brand the .exe file itself, place
