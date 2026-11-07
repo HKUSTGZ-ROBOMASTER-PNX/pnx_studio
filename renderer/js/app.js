@@ -7,7 +7,8 @@ import { workspace } from './workspace.js';
 import { t, setLanguage, language } from './i18n.js';
 import { createToolbar, createStatusBar, openConnectDialog, quickConnect, flashFirmware, connectWith, connectionProfile } from './views/connection.js';
 import { createExplorer } from './views/explorer.js';
-import { createSymbols, loadOfflineSymbols } from './views/symbols.js';
+import { createSymbols, loadOfflineSymbols, clearOfflineSymbols } from './views/symbols.js';
+import { createElfResolver } from './auto-elf.js';
 import { createPeripherals } from './views/peripherals.js';
 import { createRegisters } from './views/registers.js';
 import { createWatch } from './views/watch.js';
@@ -148,15 +149,19 @@ async function main() {
 
   // Inspector follows the debug state: registers when halted.
   session.on('stopped', () => { if (workbench.inspector.active === 'watch') return; workbench.inspector.activate('registers'); });
+  workspace.on('config:error', ({ folder, error }) => notify(`${t('Workspace configuration error')}: ${folder}: ${error.message}`, 'error', 0));
   bus.on('elf:selected', elf => {
     workspace.saveSettings({ connection: { ...(workspace.settings.connection || {}), elf } });
     notify(t('Firmware set to {file}', { file: basename(elf) }), 'ok', 2500);
   });
-  workspace.on('opened', ({ quiet }) => {
+  const resolveWorkspaceElf = createElfResolver({
+    workspace, host, loadSymbols: loadOfflineSymbols, clearSymbols: clearOfflineSymbols,
+    onDetected: (elf, count) => notify(t(count > 1 ? 'Detected firmware {file} (newest of {n})' : 'Detected firmware {file}', { file: basename(elf), n: count }), 'ok', 3500),
+  });
+  workspace.on('opened', ({ quiet, folder }) => {
     document.title = `${basename(workspace.root)} — Embedded Studio`;
     if (!quiet) showSidebar('explorer');
-    const elf = workspace.settings.connection?.elf;
-    if (elf) loadOfflineSymbols(elf);
+    resolveWorkspaceElf(folder);
   });
 
   showSidebar(layout.sidebar === null ? 'explorer' : layout.sidebar || 'explorer');

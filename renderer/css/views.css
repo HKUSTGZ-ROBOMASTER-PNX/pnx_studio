@@ -90,17 +90,20 @@
 .plot-stage { flex: 1; min-height: 0; position: relative; }
 .plot-stage.drop { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
 .plot-canvas { position: absolute; inset: 0; cursor: crosshair; }
-.plot-legend { position: absolute; left: 72px; top: 12px; right: 20px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.plot-legend { position: absolute; left: 62px; top: 3px; right: 14px; display: flex; flex-wrap: wrap; gap: 2px 8px; pointer-events: none; }
 .plot-legend .chip {
-  pointer-events: auto; display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 3px 0 10px; border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-2) 80%, transparent); border: 1px solid var(--line-strong); cursor: pointer; font-size: 12px;
-  backdrop-filter: blur(8px); box-shadow: var(--shadow-sm);
+  pointer-events: auto; display: flex; align-items: center; gap: 4px; height: 18px; padding: 0 2px;
+  border: 1px solid transparent; cursor: pointer; font-size: 10px; color: var(--fg-2); max-width: 100%; min-width: 0;
 }
 .plot-legend .chip.off { opacity: 0.45; }
 .plot-legend .chip.missing { border-style: dashed; border-color: var(--err); }
-.plot-legend .swatch { width: 8px; height: 8px; border-radius: 3px; box-shadow: 0 0 8px currentColor; }
-.plot-legend .value { color: var(--fg-0); min-width: 7ch; font-weight: 500; text-align: right; }
-.plot-legend .icon-btn { width: 18px; height: 18px; }
+.plot-legend .swatch { flex: none; width: 24px; height: 12px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.plot-legend .swatch::-webkit-color-swatch-wrapper { padding: 3px 0; }
+.plot-legend .swatch::-webkit-color-swatch { border: 0; border-radius: 0; }
+.plot-legend .swatch::-moz-color-swatch { border: 0; border-radius: 0; }
+.plot-legend .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plot-legend .value { color: var(--fg-2); font-weight: 500; }
+.plot-legend .icon-btn { width: 16px; height: 16px; }
 .plot-readout {
   position: absolute; top: 48px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--bg-3) 88%, transparent); backdrop-filter: blur(8px);
   border: 1px solid var(--line-strong); white-space: pre; pointer-events: none; font-size: 11.5px; box-shadow: var(--shadow);
@@ -347,7 +350,7 @@
 .plot-mini-toolbar .row { gap: 2px; }
 .plot-mini-toolbar .pane-grip { height: 22px; }
 .plot-mini-toolbar .pane-close { position: static; box-shadow: none; background: none; }
-.plot-view.compact .plot-legend { right: 132px; top: 8px; }
+.plot-view.compact .plot-legend { top: 3px; }
 .board-shared { gap: 4px; }
 .board-shared select { height: 28px; }
 .plot-board.linked .board-gutter.dir-column { height: 2px; }

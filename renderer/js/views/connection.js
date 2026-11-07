@@ -17,7 +17,12 @@ function saveProfile(profile) { try { localStorage.setItem(PROFILE_KEY, JSON.str
 
 export const toolbarExtras = h('div', { class: 'toolbar-group', hidden: true });
 
-export function connectionProfile() { return { mode: 'attach', speedKHz: 4000, protocol: 'swd', probe: 'auto', ...loadProfile(), ...(workspace.settings.connection || {}) }; }
+export function connectionProfile() {
+  const profile = { mode: 'attach', speedKHz: 4000, protocol: 'swd', probe: 'auto', ...loadProfile(), ...(workspace.settings.connection || {}) };
+  // A firmware from another project must never be reused for this workspace.
+  if (workspace.root) profile.elf = workspace.settings.connection?.elf || '';
+  return profile;
+}
 
 // ---------------------------------------------------------------- connect dialog
 export async function openConnectDialog({ mock = false } = {}) {

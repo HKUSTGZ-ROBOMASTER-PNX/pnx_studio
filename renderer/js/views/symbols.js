@@ -11,6 +11,13 @@ const host = window.host;
 export const VAR_MIME = 'application/x-studio-var';
 
 let offline = { elf: null, catalog: [] };
+let offlineRequest = 0;
+
+export function clearOfflineSymbols() {
+  offlineRequest++;
+  offline = { elf: null, catalog: [] };
+  bus.emit('symbols:offline', offline);
+}
 
 export function isScalar(item) {
   return item && !(item.children?.length) && (item.address != null || item.pointerAddress != null) && [1, 2, 4, 8].includes(item.byteWidth);
@@ -68,11 +75,13 @@ export function pickVariable(anchor, onPick, options = {}) {
 
 export async function loadOfflineSymbols(elf) {
   if (!elf || offline.elf === elf) return;
+  const request = ++offlineRequest;
   try {
     const catalog = await host.elf.inspect(elf);
+    if (request !== offlineRequest) return;
     offline = { elf, catalog: Array.isArray(catalog) ? catalog : [] };
     bus.emit('symbols:offline', offline);
-  } catch (error) { notify(`${t('Could not read symbols')}: ${error.message}`, 'error'); }
+  } catch (error) { if (request === offlineRequest) notify(`${t('Could not read symbols')}: ${error.message}`, 'error'); }
 }
 
 export function createSymbols() {

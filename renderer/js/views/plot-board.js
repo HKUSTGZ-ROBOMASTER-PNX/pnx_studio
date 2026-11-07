@@ -323,9 +323,11 @@ export class PlotBoard {
     this.offs.forEach(off => off());
     this.resizeObserver.disconnect();
     for (const plot of this.plots.values()) plot.dispose();
-    const plots = { ...(workspace.settings.plots || {}) };
-    delete plots[this.id];
-    workspace.saveSettings({ plots });
+    if (!this.closingWorkspace) {
+      const plots = { ...(workspace.settings.plots || {}) };
+      delete plots[this.id];
+      workspace.saveSettings({ plots });
+    }
     bus.emit('plots:changed');
   }
 }
@@ -350,6 +352,13 @@ function targetBoard() {
 
 export function initPlots() {
   bus.on('plot:add', item => targetBoard().addTrace(item));
+  workspace.on('closing', () => {
+    for (const [id, item] of [...workbench.editor.items]) {
+      if (!(item.view instanceof PlotBoard)) continue;
+      item.view.closingWorkspace = true;
+      workbench.editor.close(id);
+    }
+  });
   workspace.on('opened', () => {
     for (const [id, config] of Object.entries(workspace.settings.plots || {})) if (!workbench.editor.has(id)) openPlot(id, config);
   });

@@ -13,7 +13,7 @@ const SHORTCUTS = [
 
 export function createWelcome(hostInfo) {
   const recent = h('div', { class: 'welcome-list' });
-  const renderRecent = () => recent.replaceChildren(...(workspace.recent.length ? workspace.recent.map(folder => h('a', { class: 'welcome-link', title: folder, onclick: () => workspace.open(folder) }, icon('folder'), h('span', null, basename(folder)), h('span', { class: 'faint path' }, folder))) : [h('p', { class: 'faint' }, t('No recent folders.'))]));
+  const renderRecent = () => recent.replaceChildren(...(workspace.recent.length ? workspace.recent.map(folder => h('a', { class: 'welcome-link', title: folder, onclick: () => workspace.open(folder).catch(error => workspace.emit('config:error', { folder, error })) }, icon('folder'), h('span', null, basename(folder)), h('span', { class: 'faint path' }, folder))) : [h('p', { class: 'faint' }, t('No recent folders.'))]));
   workspace.on('opened', renderRecent);
   renderRecent();
 

@@ -5,6 +5,41 @@ const path = require('node:path');
 
 const MAX_TEXT = 8 * 1024 * 1024;
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.svn', '.hg', '.vscode', '.idea', '__pycache__', '.cache']);
+const CONFIG_FILE = '.embedded-studio.json';
+
+function readConfig(root) {
+  const file = path.join(root, CONFIG_FILE);
+  let text;
+  try { text = fs.readFileSync(file, 'utf8'); }
+  catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  const config = JSON.parse(text);
+  if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error(`Invalid workspace configuration: ${file}`);
+  if (typeof config.connection?.elf === 'string' && config.connection.elf && !path.isAbsolute(config.connection.elf)) {
+    config.connection.elf = path.resolve(root, config.connection.elf);
+  }
+  return config;
+}
+
+function writeConfig(root, config) {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid workspace configuration');
+  const file = path.join(root, CONFIG_FILE);
+  const temporary = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+  let saved = config;
+  const elf = config.connection?.elf;
+  if (typeof elf === 'string' && path.isAbsolute(elf)) {
+    const relative = path.relative(root, elf);
+    if (relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
+      saved = { ...config, connection: { ...config.connection, elf: relative.split(path.sep).join('/') } };
+    }
+  }
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(saved, null, 2)}\n`);
+    fs.renameSync(temporary, file);
+  } finally {
+    try { fs.unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  return true;
+}
 
 function readText(file) {
   const stat = fs.statSync(file);
@@ -31,6 +66,10 @@ function listDir(dir) {
     .filter(entry => !entry.name.startsWith('.') || entry.name === '.github')
     .map(entry => ({ name: entry.name, path: path.join(dir, entry.name), dir: entry.isDirectory() }))
     .sort((a, b) => (b.dir - a.dir) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+}
+
+function isFile(file) {
+  try { return fs.statSync(file).isFile(); } catch { return false; }
 }
 
 /** Starting points for a path picker: home, drive letters on Windows, / elsewhere. */
@@ -72,4 +111,17 @@ function findFiles(root, pattern, { maxDepth = 6, limit = 200 } = {}) {
   return found.sort((a, b) => b.mtimeMs - a.mtimeMs).map(item => item.path);
 }
 
-module.exports = { readText, writeText, writeBinary, listDir, findFiles, roots };
+// .out is also used by other tools; only report files with an ELF signature.
+function findElfs(root) {
+  return findFiles(root, /\.(elf|axf|out)$/i).filter(file => {
+    let fd;
+    try {
+      fd = fs.openSync(file, 'r');
+      const header = Buffer.alloc(4);
+      return fs.readSync(fd, header, 0, 4, 0) === 4 && header.equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46]));
+    } catch { return false; }
+    finally { if (fd !== undefined) fs.closeSync(fd); }
+  });
+}
+
+module.exports = { readText, writeText, writeBinary, listDir, findFiles, findElfs, roots, isFile, readConfig, writeConfig };

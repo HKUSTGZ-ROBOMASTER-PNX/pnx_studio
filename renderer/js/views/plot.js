@@ -13,8 +13,8 @@ const host = window.host;
 const CAPACITY = 1 << 18; // samples per channel (~262k)
 export const WINDOWS = [0.5, 1, 2, 5, 10, 30, 60, 120];
 export const RATES = [50, 100, 500, 1000, 2000, 5000, 10000];
-// top leaves room for the legend chips so they never cover data.
-const PAD = { left: 64, right: 18, top: 48, bottom: 30 };
+// Margins around the plot; each view computes its own legend height.
+const PAD = { left: 58, right: 12, bottom: 26 };
 
 class Channel {
   constructor() { this.t = new Float64Array(CAPACITY); this.v = new Float64Array(CAPACITY); this.start = 0; this.length = 0; }
@@ -70,6 +70,7 @@ export class PlotView {
     this.linkedHoverTime = null; // crosshair driven by a linked plot
     this.showTimeAxis = true;    // a board hides it on subplots above the bottom row
     this.padBottom = PAD.bottom;
+    this.padTop = 24;
     this.compact = false;
     this.dirty = true;
 
@@ -238,12 +239,20 @@ export class PlotView {
     bus.emit('plots:changed');
     this.empty.hidden = this.traces.length > 0;
     this.legend.replaceChildren(...this.traces.map(trace => {
+      const color = h('input', { type: 'color', class: 'swatch', title: t('Change curve color'),
+        'aria-label': `${t('Change curve color')}: ${trace.label}`,
+        value: this.resolveColor(trace.color),
+        onpointerdown: event => { event.target.value = this.resolveColor(trace.color); },
+        onclick: event => event.stopPropagation(),
+        oninput: event => { trace.color = event.target.value; this.dirty = true; },
+        onchange: event => { event.stopPropagation(); this.persist(); bus.emit('plots:changed'); } });
       const value = h('span', { class: 'value mono' });
       trace.valueEl = value;
       return h('div', { class: `chip${trace.hidden ? ' off' : ''}${trace.id || !session.connected ? '' : ' missing'}`, title: trace.id ? t('Click to show/hide') : t('Not found in current symbols') , onclick: () => { trace.hidden = !trace.hidden; this.renderLegend(); this.dirty = true; this.persist(); } },
-        h('span', { class: 'swatch', style: { background: trace.color, color: trace.color } }), h('span', { class: 'name mono' }, trace.label), value,
+        color, h('span', { class: 'name mono' }, trace.label), value,
         iconButton('close', t('Remove'), event => { event.stopPropagation(); this.removeTrace(trace.key); }, { class: 'small' }));
     }));
+    this.dirty = true;
   }
 
   // ------------------------------------------------------------ input
@@ -280,7 +289,7 @@ export class PlotView {
       const startEnd = this.paused ? this.viewEnd : this.latest;
       const [lo, hi] = this.yRange;
       const plotWidth = this.canvas.clientWidth - PAD.left - PAD.right;
-      const plotHeight = this.canvas.clientHeight - PAD.top - this.padBottom;
+      const plotHeight = this.canvas.clientHeight - this.padTop - this.padBottom;
       let moved = false;
       this.canvas.setPointerCapture(event.pointerId);
       const move = moveEvent => {
@@ -325,9 +334,10 @@ export class PlotView {
     ctx.clearRect(0, 0, width, height);
     const colors = { grid: cssVar('--line'), axis: cssVar('--line-strong'), text: cssVar('--fg-3'), cross: cssVar('--fg-2'), area: cssVar('--bg-2'), ring: cssVar('--bg-1') };
     // The legend wraps on narrow plots; push the plot area below however many rows it uses.
-    PAD.top = this.compact ? Math.max(34, this.legend.offsetTop + this.legend.offsetHeight + 6) : Math.max(48, this.legend.offsetTop + this.legend.offsetHeight + 12);
+    this.padTop = Math.max(22, this.legend.offsetTop + this.legend.offsetHeight + 3);
     this.padBottom = this.showTimeAxis ? PAD.bottom : 8;
-    const plotW = width - PAD.left - PAD.right, plotH = height - PAD.top - this.padBottom;
+    const plotW = width - PAD.left - PAD.right, plotH = height - this.padTop - this.padBottom;
+    if (plotW <= 0 || plotH <= 0) return;
     // Until the first window fills, anchor at t=0 so data grows from the left edge.
     const tEnd = this.paused ? this.viewEnd : Math.max(this.latest, this.windowSec);
     const tStart = tEnd - this.windowSec;
@@ -350,11 +360,11 @@ export class PlotView {
     }
     const [yLo, yHi] = this.yRange;
     const xOf = time => PAD.left + (time - tStart) / this.windowSec * plotW;
-    const yOf = value => PAD.top + (1 - (value - yLo) / (yHi - yLo)) * plotH;
+    const yOf = value => this.padTop + (1 - (value - yLo) / (yHi - yLo)) * plotH;
 
     // Plot area + grid + labels
     ctx.fillStyle = colors.area;
-    ctx.beginPath(); ctx.roundRect(PAD.left, PAD.top, plotW, plotH, 6); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(PAD.left, this.padTop, plotW, plotH, 6); ctx.fill();
     ctx.font = `10.5px ${cssVar('--font-mono')}`;
     ctx.lineWidth = 1;
     ctx.strokeStyle = colors.grid; ctx.fillStyle = colors.text;
@@ -374,15 +384,15 @@ export class PlotView {
     for (let k = Math.ceil(tStart / xStep); k * xStep <= tEnd; k++) {
       const time = k * xStep;
       const x = Math.round(xOf(time)) + 0.5;
-      ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + plotH); ctx.stroke();
-      if (this.showTimeAxis) ctx.fillText(`${time.toFixed(xDecimals)}s`, x, PAD.top + plotH + 8);
+      ctx.beginPath(); ctx.moveTo(x, this.padTop); ctx.lineTo(x, this.padTop + plotH); ctx.stroke();
+      if (this.showTimeAxis) ctx.fillText(`${time.toFixed(xDecimals)}s`, x, this.padTop + plotH + 8);
     }
     if (yLo < 0 && yHi > 0) { ctx.strokeStyle = colors.axis; const y = Math.round(yOf(0)) + 0.5; ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(width - PAD.right, y); ctx.stroke(); }
 
     // Traces
     ctx.save();
-    ctx.beginPath(); ctx.rect(PAD.left, PAD.top, plotW, plotH); ctx.clip();
-    ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.rect(PAD.left, this.padTop, plotW, plotH); ctx.clip();
+    ctx.lineWidth = 1.2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     for (const trace of visible) {
       const channel = this.channels.get(trace.id);
       ctx.strokeStyle = this.resolveColor(trace.color);
@@ -419,7 +429,7 @@ export class PlotView {
     if (hoverX !== null && hoverX > PAD.left && hoverX < width - PAD.right && visible.length) {
       const time = tStart + (hoverX - PAD.left) / plotW * this.windowSec;
       ctx.strokeStyle = colors.cross; ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(hoverX + 0.5, PAD.top); ctx.lineTo(hoverX + 0.5, PAD.top + plotH); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(hoverX + 0.5, this.padTop); ctx.lineTo(hoverX + 0.5, this.padTop + plotH); ctx.stroke(); ctx.setLineDash([]);
       const lines = [`t = ${time.toFixed(4)} s`];
       for (const trace of visible) {
         const channel = this.channels.get(trace.id);
@@ -432,11 +442,11 @@ export class PlotView {
       }
       this.readout.hidden = false;
       this.readout.textContent = lines.join('\n');
-      this.readout.style.top = `${PAD.top + 6}px`;
+      this.readout.style.top = `${this.padTop + 6}px`;
       this.readout.style.left = hoverX > width / 2 ? 'auto' : `${hoverX + 14}px`;
       this.readout.style.right = hoverX > width / 2 ? `${width - hoverX + 14}px` : 'auto';
     } else this.readout.hidden = true;
-    if (this.paused) { ctx.fillStyle = cssVar('--warn'); ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText(t('PAUSED — drag to pan, double-click for live'), width - PAD.right - 4, PAD.top + 4); }
+    if (this.paused) { ctx.fillStyle = cssVar('--warn'); ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText(t('PAUSED — drag to pan, double-click for live'), width - PAD.right - 4, this.padTop + 4); }
   }
 
   resolveColor(color) {
@@ -471,10 +481,10 @@ export class PlotView {
   paintLegend(ctx, x0, y0, dpr) {
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, x0, y0);
-    ctx.font = `600 11.5px ${cssVar('--font-mono')}`;
+    ctx.font = `10px ${cssVar('--font-mono')}`;
     ctx.textBaseline = 'middle';
     const right = this.canvas.clientWidth - PAD.right;
-    let x = PAD.left + 4, y = 18;
+    let x = PAD.left + 4, y = 13;
     for (const trace of this.traces.filter(item => !item.hidden)) {
       const width = 16 + ctx.measureText(trace.label).width + 14;
       if (x + width > right && x > PAD.left + 4) { x = PAD.left + 4; y += 18; }
