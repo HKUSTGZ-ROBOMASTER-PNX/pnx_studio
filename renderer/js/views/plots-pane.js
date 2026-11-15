@@ -4,7 +4,7 @@ import { bus } from '../lib/emitter.js';
 import { workbench } from '../shell.js';
 import { session } from '../session.js';
 import { PlotBoard, openPlot } from './plot-board.js';
-import { pickVariable } from './symbols.js';
+import { pickVariables } from './symbols.js';
 import { t } from '../i18n.js';
 
 const MAX_CHIPS = 6;
@@ -24,7 +24,7 @@ export function createPlotsPane() {
   const el = h('div', { class: 'plots-pane' },
     h('div', { class: 'plots-hero' },
       h('button', { class: 'btn primary block', onclick: () => openPlot() }, icon('chartAdd'), t('New plot')),
-      h('button', { class: 'btn block', onclick: event => pickVariable(event.currentTarget, item => bus.emit('plot:add', item)) }, icon('plus'), t('Add signal to plot'))),
+      h('button', { class: 'btn block', onclick: event => pickVariables(event.currentTarget, items => bus.emit('plot:add-many', items)) }, icon('plus'), t('Add signal to plot'))),
     h('div', { class: 'section-title' }, t('Open plots')),
     list,
     h('div', { class: 'section-title' }, t('Adding signals')),

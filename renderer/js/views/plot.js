@@ -5,7 +5,7 @@ import { bus } from '../lib/emitter.js';
 import { session } from '../session.js';
 import { workspace } from '../workspace.js';
 import { notify } from '../shell.js';
-import { pickVariable, VAR_MIME } from './symbols.js';
+import { pickVariables, VAR_MIME } from './symbols.js';
 import { t } from '../i18n.js';
 import { channelsToCsv } from '../lib/csv.js';
 
@@ -76,7 +76,7 @@ export class PlotView {
 
     this.canvas = h('canvas', { class: 'plot-canvas' });
     this.legend = h('div', { class: 'plot-legend' });
-    this.empty = h('div', { class: 'plot-empty' }, icon('chart'), h('p', null, t('Drag variables here from Symbols, or')), h('button', { class: 'btn', onclick: event => pickVariable(event.currentTarget, item => this.addTrace(item)) }, icon('plus'), t('Add signal')));
+    this.empty = h('div', { class: 'plot-empty' }, icon('chart'), h('p', null, t('Drag variables here from Symbols, or')), h('button', { class: 'btn', onclick: event => pickVariables(event.currentTarget, items => this.addTraces(items)) }, icon('plus'), t('Add signal')));
     this.readout = h('div', { class: 'plot-readout mono', hidden: true });
     this.stage = h('div', { class: 'plot-stage' }, this.canvas, this.legend, this.readout, this.empty);
     this.pauseButton = iconButton('pause', `${t('Pause')} (Space)`, () => this.setPaused(!this.paused));
@@ -87,7 +87,7 @@ export class PlotView {
       RATES.map(value => h('option', { value, selected: value === this.rate }, value >= 1000 ? `${value / 1000} kHz` : `${value} Hz`)));
     this.toolbar = h('div', { class: 'view-toolbar' },
       ...(options.toolbarStart || []),
-      h('button', { class: 'btn small', onclick: event => pickVariable(event.currentTarget, item => this.addTrace(item)) }, icon('plus'), t('Signal')),
+      h('button', { class: 'btn small', onclick: event => pickVariables(event.currentTarget, items => this.addTraces(items)) }, icon('plus'), t('Signal')),
       h('div', { class: 'sep' }), this.pauseButton, this.autoButton,
       iconButton('refresh', t('Clear data'), () => (options.onClear ? options.onClear(this) : this.clear())),
       h('div', { class: 'sep' }), h('span', { class: 'faint' }, t('Window')), windowSelect, h('span', { class: 'faint' }, t('Rate')), rateSelect,
@@ -99,7 +99,7 @@ export class PlotView {
     this.miniEnd = h('span', { class: 'row' });
     this.miniAuto = iconButton('zoomFit', t('Auto-scale Y'), () => this.setAutoY(true), { class: 'small active' });
     this.miniToolbar = h('div', { class: 'plot-mini-toolbar' }, this.miniStart,
-      iconButton('plus', t('Add signal'), event => pickVariable(event.currentTarget, item => this.addTrace(item)), { class: 'small' }),
+      iconButton('plus', t('Add signal'), event => pickVariables(event.currentTarget, items => this.addTraces(items)), { class: 'small' }),
       this.miniAuto, this.miniEnd);
     this.el = h('div', { class: 'plot-view' }, this.toolbar, this.stage, this.miniToolbar);
 
@@ -119,10 +119,22 @@ export class PlotView {
 
   // ------------------------------------------------------------ data
   addTrace(item, saved = {}) {
-    const key = item.expression || item.id;
-    if (this.traces.some(trace => trace.key === key)) return;
+    this.addTraces([item], [saved]);
+  }
+
+  addTraces(items, savedItems = []) {
     const palette = Array.from({ length: 8 }, (_, i) => `var(--plot-${i + 1})`);
-    this.traces.push({ key, label: saved.label || key, color: saved.color || palette[this.traces.length % palette.length], hidden: !!saved.hidden, id: null });
+    const keys = new Set(this.traces.map(trace => trace.key));
+    let added = false;
+    items.forEach((item, index) => {
+      const key = item.expression || item.id;
+      if (!key || keys.has(key)) return;
+      keys.add(key);
+      const saved = savedItems[index] || {};
+      this.traces.push({ key, label: saved.label || key, color: saved.color || palette[this.traces.length % palette.length], hidden: !!saved.hidden, id: null });
+      added = true;
+    });
+    if (!added) return;
     this.resolveTraces();
     this.subscribe();
     this.renderLegend();
@@ -263,7 +275,7 @@ export class PlotView {
     stage.addEventListener('drop', event => {
       stage.classList.remove('drop');
       const data = event.dataTransfer.getData(VAR_MIME);
-      if (data) { event.preventDefault(); this.addTrace(JSON.parse(data)); }
+      if (data) { event.preventDefault(); const item = JSON.parse(data); if (!item.children?.length) this.addTrace(item); }
     });
     this.canvas.addEventListener('mousemove', event => {
       this.hoverX = event.offsetX; this.dirty = true;

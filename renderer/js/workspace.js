@@ -30,8 +30,8 @@ class Workspace extends Emitter {
     const recent = [folder, ...(this.appSettings.recent || []).filter(item => item !== folder)].slice(0, 8);
     this.appSettings = await host.settings.set({ lastWorkspace: folder, recent });
     this.emit('opened', { folder, quiet });
-    // Migrate settings from older releases to the project folder on first open.
-    if (saved === null && Object.keys(settings).length) this.saveSettings({});
+    // Create the project config on first open, including migrated settings if present.
+    if (saved === null) this.saveSettings({});
   }
 
   async choose() {

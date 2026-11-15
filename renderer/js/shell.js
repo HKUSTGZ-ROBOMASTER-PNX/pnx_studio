@@ -8,6 +8,41 @@ const LAYOUT_KEY = 'studio.layout.v1';
 function loadLayout() { try { return JSON.parse(localStorage.getItem(LAYOUT_KEY)) || {}; } catch { return {}; } }
 function saveLayout(patch) { try { localStorage.setItem(LAYOUT_KEY, JSON.stringify({ ...loadLayout(), ...patch })); } catch { /* storage unavailable */ } }
 
+function enableTabScrolling(tabs) {
+  let drag = null;
+  let suppressClick = false;
+  tabs.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button') || tabs.scrollWidth <= tabs.clientWidth) return;
+    drag = { pointerId: event.pointerId, x: event.clientX, scrollLeft: tabs.scrollLeft, moved: false };
+  });
+  tabs.addEventListener('pointermove', event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const delta = event.clientX - drag.x;
+    if (!drag.moved && Math.abs(delta) < 5) return;
+    if (!drag.moved) { drag.moved = true; tabs.setPointerCapture(event.pointerId); tabs.classList.add('dragging'); }
+    tabs.scrollLeft = drag.scrollLeft - delta;
+    event.preventDefault();
+  });
+  const finish = event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (drag.moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); }
+    drag = null;
+    tabs.classList.remove('dragging');
+  };
+  window.addEventListener('pointerup', finish);
+  window.addEventListener('pointercancel', finish);
+  tabs.addEventListener('lostpointercapture', finish);
+  tabs.addEventListener('click', event => {
+    if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; }
+  }, true);
+  tabs.addEventListener('wheel', event => {
+    if (tabs.scrollWidth <= tabs.clientWidth || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+    const before = tabs.scrollLeft;
+    tabs.scrollLeft += event.deltaY;
+    if (tabs.scrollLeft !== before) event.preventDefault();
+  }, { passive: false });
+}
+
 /**
  * A strip of tabs over a stack of views. A view spec is
  *   { id, title, icon?, closable?, create(): { el, onShow?, onHide?, dispose?, title? } }
@@ -21,6 +56,7 @@ export class TabGroup extends Emitter {
     this.active = null;
     root.classList.toggle('compact', compact);
     this.tabs = h('div', { class: 'tabs', role: 'tablist' });
+    enableTabScrolling(this.tabs);
     this.actions = h('div', { class: 'actions' }, actions);
     this.body = h('div', { class: 'tabbody' });
     this.emptyEl = empty ? h('div', { class: 'view' }, empty) : null;

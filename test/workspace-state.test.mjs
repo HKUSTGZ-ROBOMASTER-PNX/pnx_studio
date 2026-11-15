@@ -32,6 +32,8 @@ test('workspace migrates settings, serializes writes and isolates projects', asy
   assert.equal(files.get('A').plots.p.color, '#112233');
   await workspace.open('B');
   assert.deepEqual(workspace.settings, {});
+  await workspace.writes.get('B');
+  assert.deepEqual(files.get('B'), {});
   await workspace.saveSettings({ plots: { q: {} } });
   await workspace.open('A');
   assert.equal(workspace.settings.connection.elf, 'old.elf');

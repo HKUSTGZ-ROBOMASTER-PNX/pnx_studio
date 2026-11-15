@@ -56,25 +56,37 @@ export function activate(studio) {
 
   // ------------------------------------------------ panel
   const add = item => {
-    const key = item.expression || item.id;
-    if (!key || config.keys.includes(key)) return;
-    config.keys.push(key);
+    if (state.recording) return;
+    const root = studio.session.variable(item.expression || item.id) || item;
+    const keys = new Set(config.keys);
+    const collect = variable => {
+      if (variable.children?.length) { variable.children.forEach(collect); return; }
+      if ((variable.address != null || variable.pointerAddress != null) && [1, 2, 4, 8].includes(variable.byteWidth)) {
+        const key = variable.expression || variable.id;
+        if (key) keys.add(key);
+      }
+    };
+    collect(root);
+    if (keys.size === config.keys.length) return;
+    config.keys = [...keys];
     persist(); render();
   };
   const list = h('div', { class: 'recorder-list' });
   const status = h('div', { class: 'mono faint', style: { userSelect: 'text', whiteSpace: 'pre-wrap', fontSize: '12px' } });
   const startButton = h('button', { class: 'btn small primary', onclick: toggle });
+  const addButton = h('button', { class: 'btn small', onclick: event => pickVariable(event.currentTarget, add, { aggregates: true }) }, icon('plus'), t('Add variable'));
+  const clearButton = h('button', { class: 'btn small', onclick: () => { if (state.recording) return; config.keys = []; persist(); render(); } }, t('Clear list'));
   const rateSelect = h('select', { title: t('Rate'), onchange: event => { config.rate = Number(event.target.value); persist(); if (state.recording && config.keys.length) studio.session.subscribe(state.columns, config.rate); } },
     RATES.map(value => h('option', { value, selected: value === config.rate }, value >= 1000 ? `${value / 1000} kHz` : `${value} Hz`)));
   const panel = h('div', { style: { display: 'flex', flexDirection: 'column', minHeight: '0', flex: '1' } },
     h('div', { class: 'view-toolbar' },
       startButton,
-      h('button', { class: 'btn small', onclick: event => pickVariable(event.currentTarget, add) }, icon('plus'), t('Add variable')),
+      addButton,
       h('span', { class: 'faint' }, t('Rate')), rateSelect,
       h('span', { class: 'grow' }),
-      iconButton('close', t('Clear list'), () => { config.keys = []; persist(); render(); }, { class: 'small' })),
+      clearButton),
     h('div', { style: { padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '8px', overflow: 'auto', flex: '1' } }, status, list));
-  panel.addEventListener('dragover', event => { if (event.dataTransfer.types.includes(VAR_MIME)) { event.preventDefault(); panel.style.boxShadow = 'inset 0 0 0 2px var(--accent)'; } });
+  panel.addEventListener('dragover', event => { if (!state.recording && event.dataTransfer.types.includes(VAR_MIME)) { event.preventDefault(); panel.style.boxShadow = 'inset 0 0 0 2px var(--accent)'; } });
   panel.addEventListener('dragleave', event => { if (!panel.contains(event.relatedTarget)) panel.style.boxShadow = ''; });
   panel.addEventListener('drop', event => {
     panel.style.boxShadow = '';
@@ -87,6 +99,8 @@ export function activate(studio) {
     button.style.color = state.recording ? 'var(--err)' : '';
     startButton.replaceChildren(icon(state.recording ? 'stop' : 'record'), state.recording ? t('Stop recording') : t('Start recording'));
     startButton.className = state.recording ? 'btn small' : 'btn small primary';
+    addButton.disabled = !!state.recording;
+    clearButton.disabled = !!state.recording || !config.keys.length;
     status.textContent = state.file
       ? `${state.recording ? `● ${t('recording')}` : `■ ${t('stopped')}`}  ${t('{rows} rows · {columns} columns', { rows: state.rows ?? 0, columns: state.columns?.length ?? 0 })}\n${state.file}`
       : t('Not recording.');

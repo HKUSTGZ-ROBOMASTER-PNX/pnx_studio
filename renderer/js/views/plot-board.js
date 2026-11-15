@@ -314,6 +314,7 @@ export class PlotBoard {
   get traces() { return [...this.plots.values()].flatMap(plot => plot.traces); }
   /** Adds go to the plot last clicked. */
   addTrace(item) { return this.focusedPlot().addTrace(item); }
+  addTraces(items) { return this.focusedPlot().addTraces(items); }
   get channels() { return this.focusedPlot().channels; }
   get latest() { return this.clock.latest; }
 
@@ -352,6 +353,7 @@ function targetBoard() {
 
 export function initPlots() {
   bus.on('plot:add', item => targetBoard().addTrace(item));
+  bus.on('plot:add-many', items => targetBoard().addTraces(items));
   workspace.on('closing', () => {
     for (const [id, item] of [...workbench.editor.items]) {
       if (!(item.view instanceof PlotBoard)) continue;

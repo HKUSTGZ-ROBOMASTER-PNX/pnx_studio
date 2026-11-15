@@ -34,6 +34,7 @@ export function createWatch() {
   let period = 200;
   const expanded = new Set(); // `${group}\0${key}` of open watch entries, ids of open members
   const list = h('div', { class: 'watch-list' });
+  let valueUpdaters = [];
 
   const activeGroup = () => groups.find(group => group.id === activeId) || groups[0];
   const persist = () => workspace.saveSettings({ watch: { groups, active: activeId } });
@@ -134,6 +135,7 @@ export function createWatch() {
   };
 
   const render = () => {
+    valueUpdaters = [];
     list.replaceChildren(...groups.map(group => {
       const total = group.items.length;
       const live = group.enabled ? group.items.filter(item => item.enabled).length : 0;
@@ -164,21 +166,27 @@ export function createWatch() {
         const changed = live && scalar && previous.has(variable.id) && previous.get(variable.id) !== value;
         const text = !session.connected ? '—' : !variable ? t('not found') : aggregate ? (open ? '' : '{…}') : scalar ? (value === undefined ? '—' : formatValue(value, 8)) : '';
         const valueCell = h('span', { class: `watch-value mono${changed ? ' changed' : ''}${aggregate ? ' faint' : ''}`, title: scalar ? t('Double-click to edit') : '' }, text);
+        if (scalar) valueUpdaters.push(() => {
+          if (valueCell.querySelector('input')) return;
+          const current = values.get(variable.id);
+          valueCell.textContent = !session.connected || current === undefined ? '—' : formatValue(current, 8);
+          valueCell.classList.toggle('changed', live && previous.has(variable.id) && previous.get(variable.id) !== current);
+        });
         if (scalar) valueCell.ondblclick = () => edit(valueCell, expression, variable);
         const toggle = () => { open ? expanded.delete(openKey) : expanded.add(openKey); render(); poll(); };
         const sampling = depth ? null : iconButton(item.enabled ? 'pause' : 'play', item.enabled ? t('Pause sampling (keep in list)') : t('Resume sampling'),
           () => { item.enabled = !item.enabled; persist(); render(); poll(); }, { class: `small${item.enabled ? '' : ' active'}` });
         rows.push(h('div', {
-          class: `watch-row${live ? '' : ' paused'}`, draggable: scalar || !variable || !depth, onclick: aggregate ? toggle : null,
+          class: `watch-row${live ? '' : ' paused'}`, draggable: scalar || aggregate || !variable || !depth, onclick: aggregate ? toggle : null,
           ondragstart: event => {
-            if (scalar || !variable) event.dataTransfer.setData(VAR_MIME, JSON.stringify({ id: variable?.id, expression }));
+            if (scalar || aggregate || !variable) event.dataTransfer.setData(VAR_MIME, JSON.stringify(variable || { expression }));
             if (!depth) event.dataTransfer.setData(WATCH_MIME, JSON.stringify({ group: group.id, key: item.key }));
           },
         },
         h('span', { class: 'watch-name mono', style: { paddingLeft: `${depth * 14}px` }, title: variable ? `${expression}\n${variable.typeName}${variable.address != null ? ` @ ${hex(variable.address)}` : ''}` : item.key },
           aggregate ? icon(open ? 'chevronDown' : 'chevronRight', 'twisty') : depth ? h('span', { class: 'twisty-spacer' }) : null, name),
         valueCell,
-        h('span', { class: 'row-actions', onclick: event => event.stopPropagation() },
+        h('span', { class: 'row-actions', onclick: event => event.stopPropagation(), ondragstart: event => event.preventDefault(), ondblclick: event => event.stopPropagation() },
           sampling,
           scalar || !variable ? iconButton('chart', t('Plot'), () => bus.emit('plot:add', { id: variable?.id, expression }), { class: 'small' }) : null,
           depth ? null : iconButton('close', t('Remove'), () => { group.items = group.items.filter(entry => entry !== item); expanded.delete(openKey); persist(); render(); }, { class: 'small' }))));
@@ -205,7 +213,7 @@ export function createWatch() {
       previous = values;
       values = new Map(values);
       for (const [id, value] of next) values.set(id, value);
-      render();
+      valueUpdaters.forEach(update => update());
     } catch { /* target busy; next tick retries */ }
     timer = setTimeout(poll, session.halted ? 1000 : period);
   };

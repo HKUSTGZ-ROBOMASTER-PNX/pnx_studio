@@ -51,6 +51,7 @@ const zh = {
   'Connect / Continue': '连接 / 继续', 'Command palette': '命令面板',
   'Empty folder': '空文件夹', 'Select a file': '请选择一个文件', 'Up': '上一级', 'File name': '文件名', 'Save as': '另存为', 'Open file': '打开文件', 'Browsing files on {host}': '正在浏览 {host} 上的文件', 'Select folder': '选择此文件夹', 'Open': '打开',
   'Files': '文件', 'Variables': '变量', 'Plots': '曲线', 'Periph.': '外设', 'Add signal to plot': '添加信号到曲线',
+  'Add selected ({n})': '添加已选（{n}）', 'Select visible': '全选当前结果', 'Clear selection': '清空选择',
   'Workspace configuration error': '工作区配置错误',
   'Open plots': '已打开的曲线', 'Adding signals': '如何添加信号', 'No plots yet': '还没有曲线', '{n} signals': '{n} 个信号',
   'In Symbols, hover a variable and click the plot icon': '在「变量」面板中悬停变量，点击曲线图标',

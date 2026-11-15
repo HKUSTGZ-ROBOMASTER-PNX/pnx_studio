@@ -113,7 +113,7 @@ label:has(> input[type="checkbox"]) { display: inline-flex; align-items: center;
 .field > span { color: var(--fg-2); font-size: 12px; font-weight: 500; }
 
 /* ---------------------------------------------------------------- workbench: floating panes */
-#workbench { display: flex; min-height: 0; padding: 0 var(--gap) 0 0; }
+#workbench { display: flex; min-width: 0; min-height: 0; padding: 0 var(--gap) 0 0; }
 #activitybar {
   width: 64px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 2px 0 8px;
   background: var(--frame);
@@ -138,15 +138,15 @@ label:has(> input[type="checkbox"]) { display: inline-flex; align-items: center;
   background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
-#sidebar { width: 280px; flex: none; display: flex; flex-direction: column; min-width: 0; }
+#sidebar { width: 280px; flex: 0 1 auto; display: flex; flex-direction: column; min-width: 0; }
 #sidebar.collapsed { display: none; }
 .pane-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .pane-view[hidden] { display: none; }
 #sidebar.collapsed + .splitter { display: none; }
-#center { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#center { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; }
 #editor { flex: 1; min-height: 0; }
 #panel { height: 240px; flex: none; }
-#inspector { width: 340px; flex: none; }
+#inspector { width: 340px; flex: 0 1 auto; }
 #panel.collapsed, #inspector.collapsed { display: none; }
 /* Splitters are the gaps between panes; a thin accent line appears on hover. */
 .splitter { flex: none; background: transparent; position: relative; z-index: 2; }
@@ -172,6 +172,8 @@ label:has(> input[type="checkbox"]) { display: inline-flex; align-items: center;
 .tabstrip { display: flex; align-items: stretch; height: 38px; flex: none; background: var(--bg-0); border-bottom: 1px solid var(--line); padding: 0 4px; }
 .tabstrip .tabs { display: flex; align-items: center; gap: 2px; overflow-x: auto; flex: 1; min-width: 0; }
 .tabstrip .tabs::-webkit-scrollbar { height: 0; }
+.tabstrip .tabs.dragging { cursor: grabbing; user-select: none; }
+.tabstrip .tabs.dragging .tab { cursor: grabbing; }
 .tabstrip .actions { display: flex; align-items: center; gap: 2px; padding: 0 2px 0 6px; }
 .tab {
   display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 6px 0 10px; max-width: 220px; flex: none;

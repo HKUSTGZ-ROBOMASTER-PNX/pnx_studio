@@ -51,27 +51,48 @@ export function searchVariables(query, limit = 300, { aggregates = false } = {})
 export function pickVariable(anchor, onPick, options = {}) {
   const input = h('input', { type: 'search', placeholder: t('Search variables…'), spellcheck: false });
   const list = h('div', { class: 'picker-list' });
+  const selected = new Map();
+  const keyOf = item => item.expression || item.id || item.name;
+  const addButton = options.multiple ? h('button', { class: 'btn small primary', disabled: true, onclick: () => { onPick([...selected.values()]); close(); } }) : null;
+  const updateButton = () => {
+    if (!addButton) return;
+    addButton.disabled = !selected.size;
+    addButton.textContent = t('Add selected ({n})', { n: selected.size });
+  };
   const render = () => {
     const results = searchVariables(input.value, 120, options);
-    list.replaceChildren(...(results.length ? results.map(item => h('div', { class: 'picker-item', onmousedown: event => { event.preventDefault(); onPick(item); close(); } },
-      h('span', { class: 'mono' }, item.expression || item.name), h('span', { class: 'faint' }, item.typeName))) : [h('div', { class: 'tree-msg muted' }, currentCatalog().length ? t('No match') : t('No symbols — choose an ELF or connect first'))]));
+    list.replaceChildren(...(results.length ? results.map(item => options.multiple
+      ? h('label', { class: 'picker-item picker-multi-item' },
+        h('input', { type: 'checkbox', checked: selected.has(keyOf(item)), onchange: event => { if (event.target.checked) selected.set(keyOf(item), item); else selected.delete(keyOf(item)); updateButton(); } }),
+        h('span', { class: 'mono' }, item.expression || item.name), h('span', { class: 'faint' }, item.typeName))
+      : h('div', { class: 'picker-item', onmousedown: event => { event.preventDefault(); onPick(item); close(); } },
+        h('span', { class: 'mono' }, item.expression || item.name), h('span', { class: 'faint' }, item.typeName))) : [h('div', { class: 'tree-msg muted' }, currentCatalog().length ? t('No match') : t('No symbols — choose an ELF or connect first'))]));
+    updateButton();
   };
-  const box = h('div', { class: 'menu picker' }, input, list);
+  const box = h('div', { class: 'menu picker' }, input, list, options.multiple ? h('div', { class: 'picker-footer' },
+    h('button', { class: 'btn small', onclick: () => { for (const item of searchVariables(input.value, 120, options)) selected.set(keyOf(item), item); render(); } }, t('Select visible')),
+    h('button', { class: 'btn small ghost', onclick: () => { selected.clear(); render(); } }, t('Clear selection')),
+    h('span', { class: 'grow' }), addButton) : null);
   const close = () => { box.remove(); document.removeEventListener('mousedown', outside, true); };
   const outside = event => { if (!box.contains(event.target)) close(); };
   input.addEventListener('input', debounce(render, 80));
   input.addEventListener('keydown', event => {
     if (event.key === 'Escape') close();
-    if (event.key === 'Enter') { const first = searchVariables(input.value, 1, options)[0]; if (first) { onPick(first); close(); } }
+    if (event.key === 'Enter') {
+      if (options.multiple) { if (selected.size) { onPick([...selected.values()]); close(); } }
+      else { const first = searchVariables(input.value, 1, options)[0]; if (first) { onPick(first); close(); } }
+    }
   });
   document.getElementById('overlay').append(box);
-  const rect = anchor.getBoundingClientRect();
-  box.style.left = `${Math.min(rect.left, window.innerWidth - 420)}px`;
-  box.style.top = `${Math.min(rect.bottom + 4, window.innerHeight - 380)}px`;
-  setTimeout(() => document.addEventListener('mousedown', outside, true));
   render();
+  const rect = anchor.getBoundingClientRect();
+  box.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - box.offsetWidth - 8))}px`;
+  box.style.top = `${Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - box.offsetHeight - 8))}px`;
+  setTimeout(() => document.addEventListener('mousedown', outside, true));
   input.focus();
 }
+
+export function pickVariables(anchor, onPick) { return pickVariable(anchor, onPick, { multiple: true }); }
 
 export async function loadOfflineSymbols(elf) {
   if (!elf || offline.elf === elf) return;
@@ -94,18 +115,18 @@ export function createSymbols() {
     const scalar = isScalar(item);
     const hasChildren = item.children?.length > 0;
     const el = h('div', {
-      class: 'tree-row var-row', style: { paddingLeft: `${8 + depth * 14}px` }, draggable: scalar,
+      class: 'tree-row var-row', style: { paddingLeft: `${8 + depth * 14}px` }, draggable: scalar || hasChildren,
       title: `${item.expression || item.name}\n${item.typeName}${item.address != null ? ` @ ${hex(item.address)}` : ''}`,
-      ondragstart: event => { event.dataTransfer.setData(VAR_MIME, JSON.stringify({ id: item.id, expression: item.expression || item.name })); event.dataTransfer.effectAllowed = 'copy'; },
+      ondragstart: event => { event.dataTransfer.setData(VAR_MIME, JSON.stringify(item)); event.dataTransfer.effectAllowed = 'copy'; },
       oncontextmenu: event => { event.preventDefault(); if (scalar || hasChildren) rowMenu({ x: event.clientX, y: event.clientY }, item, scalar); },
     },
     hasChildren ? icon(expanded.has(item.id) ? 'chevronDown' : 'chevronRight', 'twisty') : h('span', { class: 'twisty-spacer' }),
     h('span', { class: 'name mono' }, depth ? item.name : (item.expression || item.name)),
     h('span', { class: 'type faint' }, item.typeName),
-    scalar ? h('span', { class: 'row-actions' },
+    scalar ? h('span', { class: 'row-actions', ondragstart: event => event.preventDefault(), ondblclick: event => event.stopPropagation() },
       iconButton('eye', t('Add to watch'), event => { event.stopPropagation(); bus.emit('watch:add', item); }, { class: 'small' }),
       iconButton('chart', t('Plot'), event => { event.stopPropagation(); bus.emit('plot:add', item); }, { class: 'small' }))
-      : hasChildren ? h('span', { class: 'row-actions' },
+      : hasChildren ? h('span', { class: 'row-actions', ondragstart: event => event.preventDefault(), ondblclick: event => event.stopPropagation() },
         iconButton('eye', t('Add to watch'), event => { event.stopPropagation(); bus.emit('watch:add', item); }, { class: 'small' })) : null);
     if (hasChildren) el.onclick = () => { expanded.has(item.id) ? expanded.delete(item.id) : expanded.add(item.id); render(); };
     else if (scalar) el.ondblclick = () => bus.emit('watch:add', item);

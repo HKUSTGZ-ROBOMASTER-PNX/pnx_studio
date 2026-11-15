@@ -37,6 +37,7 @@
 .tree-row .file-icon { color: var(--fg-3); }
 .var-row .type { margin-left: auto; font-size: 11px; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
 .row-actions { display: none; gap: 0; margin-left: 4px; }
+.var-row .row-actions { margin-left: auto; flex: none; }
 .tree-row:hover .row-actions, .watch-row:hover .row-actions { display: flex; }
 .var-row:hover .type { display: none; }
 .list-row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; margin: 0 6px; border-radius: 6px; cursor: pointer; color: var(--fg-1); }
@@ -47,12 +48,16 @@
 .bp-dot.unverified { background: transparent; border: 1.5px solid var(--bp); }
 
 /* ---------------------------------------------------------------- picker & palette */
-.picker { width: 410px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.picker { width: min(410px, calc(100vw - 16px)); max-height: calc(100vh - 16px); padding: 6px; display: flex; flex-direction: column; gap: 6px; }
 .picker input { width: 100%; }
-.picker-list { max-height: 320px; overflow: auto; }
+.picker-list { min-height: 0; max-height: 320px; overflow: auto; }
 .picker-item { display: flex; justify-content: space-between; gap: 12px; padding: 5px 8px; border-radius: 5px; cursor: pointer; }
 .picker-item:hover { background: var(--bg-3); }
 .picker-item .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker label.picker-multi-item { display: flex; justify-content: flex-start; }
+.picker-multi-item .mono { flex: 1; min-width: 0; }
+.picker-multi-item .faint { flex: none; }
+.picker-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .picker-item .faint { flex: none; font-size: 11px; }
 .palette-backdrop { place-items: start center; padding-top: 12vh; background: rgba(5, 8, 12, 0.35); }
 .palette { width: min(620px, calc(100vw - 32px)); background: var(--bg-2); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--shadow); padding: 8px; }
