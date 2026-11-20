@@ -32,6 +32,7 @@ export function createWatch() {
   let previous = new Map();
   let timer = null;
   let period = 200;
+  let pollGeneration = 0;
   const expanded = new Set(); // `${group}\0${key}` of open watch entries, ids of open members
   const list = h('div', { class: 'watch-list' });
   let valueUpdaters = [];
@@ -203,19 +204,23 @@ export function createWatch() {
   };
 
   const poll = async () => {
+    const generation = ++pollGeneration;
     clearTimeout(timer);
     if (!session.connected) return;
     const ids = polledIds();
     if (!ids.length) { render(); return; }
     try {
       const next = await session.readValues(ids);
+      // A reconnect or another poll may have replaced these symbols while the
+      // target was busy. Do not apply old values or start another polling loop.
+      if (generation !== pollGeneration || !session.connected) return;
       // Paused entries keep their last value.
       previous = values;
       values = new Map(values);
       for (const [id, value] of next) values.set(id, value);
       valueUpdaters.forEach(update => update());
     } catch { /* target busy; next tick retries */ }
-    timer = setTimeout(poll, session.halted ? 1000 : period);
+    if (generation === pollGeneration && session.connected) timer = setTimeout(poll, session.halted ? 1000 : period);
   };
 
   const rateSelect = h('select', { title: t('Polling rate of sampled variables'), onchange: event => { period = Number(event.target.value); poll(); } },
@@ -236,9 +241,20 @@ export function createWatch() {
     activeId = loaded.active && groups.some(group => group.id === loaded.active) ? loaded.active : groups[0].id;
     render(); poll();
   });
-  session.on('connected', poll);
+  // Rows capture the current symbol descriptors, so rebuild them when symbols
+  // arrive or change; value-only updates cannot repair an unresolved row.
+  session.on('catalog', () => { render(); poll(); });
+  session.on('connected', () => { render(); poll(); });
   session.on('stopped', () => { previous = values; poll(); });
-  session.on('status', status => { if (status === 'disconnected') { clearTimeout(timer); values = new Map(); render(); } });
+  session.on('status', status => {
+    if (status === 'disconnected') {
+      pollGeneration++;
+      clearTimeout(timer);
+      values = new Map();
+      previous = new Map();
+      render();
+    }
+  });
   render();
   return {
     el: h('div', { class: 'inspector-view' },
