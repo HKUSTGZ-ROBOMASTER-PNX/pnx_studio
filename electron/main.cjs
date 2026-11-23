@@ -1,10 +1,11 @@
 'use strict';
-const { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, net, protocol, shell, screen } = require('electron');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const platform = require('./core/platform.cjs');
+const { restoreWindowBounds } = require('./core/window-bounds.cjs');
 const { createBackend } = require('./core/backend.cjs');
 const { spawn, execFileSync } = require('node:child_process');
 
@@ -126,9 +127,9 @@ function windowIcon() {
 }
 
 function createWindow() {
-  const bounds = backend.settings().windowBounds || {};
+  const bounds = restoreWindowBounds(backend.settings().windowBounds, screen.getAllDisplays());
   window = new BrowserWindow({
-    width: bounds.width || 1480, height: bounds.height || 940, x: bounds.x, y: bounds.y,
+    ...bounds,
     minWidth: 960, minHeight: 600, show: false, backgroundColor: '#14171c', title: 'Embedded Studio',
     autoHideMenuBar: true,
     icon: windowIcon(),

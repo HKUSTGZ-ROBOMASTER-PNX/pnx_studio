@@ -5,6 +5,7 @@ export const PLUGINS = [
   ['memory-image', 'Memory Image Viewer'],
   ['pnx-template', 'PnX Template Configuration'],
   ['system-identification', 'Gimbal System Identification'],
+  ['embedded-setup', 'Embedded Environment Setup'],
 ];
 const ids = new Set(PLUGINS.map(([id]) => id));
 
@@ -22,6 +23,8 @@ export function readSelection(text) {
     const match = /^([^=]+)=(.*)$/.exec(line.trim());
     if (match && ids.has(match[1])) values.set(match[1], match[2].trim());
   }
+  // Selections from releases before this plugin existed keep it enabled.
+  if (!values.has('embedded-setup') && values.size === ids.size - 1) values.set('embedded-setup', '1');
   if (values.size !== ids.size || [...values.values()].some(value => value !== '0' && value !== '1')) throw new Error('Invalid plugin selection');
   return new Set([...values].filter(([, value]) => value === '1').map(([id]) => id));
 }

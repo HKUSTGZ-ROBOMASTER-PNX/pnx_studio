@@ -18,6 +18,9 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
 const RUST_TARGET = 'x86_64-pc-windows-gnu';
 const APP_NAME = 'Embedded Studio';
+// The WSL build disables electron-builder resource editing; require rcedit so
+// reinstalls cannot silently restore Electron's icon and executable metadata.
+const rcedit = path.join(os.homedir(), '.cache', 'embedded-studio', 'rcedit-x64.exe');
 
 function step(message) { console.log(`\n▸ ${message}`); }
 function run(command, commandArgs, options = {}) {
@@ -66,6 +69,11 @@ if (selectionArg) {
   }
 }
 
+if (!existsSync(rcedit)) {
+  console.error(`Windows branding requires ${rcedit}. Install rcedit before running this WSL installer, or use npm run dist on Windows.`);
+  process.exit(1);
+}
+
 // ---------------------------------------------------------------- 1. Rust core for Windows
 if (!args.includes('--skip-native')) {
   step('Building the Rust core for Windows (x86_64-pc-windows-gnu)');
@@ -109,10 +117,8 @@ for (const [id] of PLUGINS) if (!selected.has(id)) rmSync(path.join(installWsl, 
 writeFileSync(selectionFile, formatSelection(selected));
 
 // ---------------------------------------------------------------- 3b. Optional: exe icon + version info
-// The window/taskbar icon is set at runtime. To also brand the .exe file itself, place
-// rcedit-x64.exe (github.com/electron/rcedit releases) in ~/.cache/embedded-studio/.
-const rcedit = path.join(os.homedir(), '.cache', 'embedded-studio', 'rcedit-x64.exe');
-if (existsSync(rcedit)) {
+// Apply the executable icon and metadata even for WSL builds.
+{
   step('Embedding icon and version info into the .exe (rcedit)');
   const version = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).version;
   execFileSync(rcedit, [`${installWin}\\${APP_NAME}.exe`, '--set-icon', `${installWin}\\resources\\icon.ico`,

@@ -10,6 +10,8 @@ Var PluginCsvControl
 Var PluginImuControl
 Var PluginMemoryControl
 Var PluginTemplateControl
+Var PluginSetupControl
+Var PluginSetup
 Var PluginSystemIdControl
 
 # Capture choices before electron-builder removes the previous installation. Missing
@@ -20,12 +22,17 @@ Function ReadPluginSelection
   StrCpy $PluginMemory ${BST_CHECKED}
   StrCpy $PluginTemplate ${BST_CHECKED}
   StrCpy $PluginSystemId ${BST_CHECKED}
+  StrCpy $PluginSetup ${BST_CHECKED}
   IfFileExists "$INSTDIR\resources\plugin-selection.ini" 0 done
   ReadINIStr $PluginCsv "$INSTDIR\resources\plugin-selection.ini" "plugins" "csv-recorder"
   ReadINIStr $PluginImu "$INSTDIR\resources\plugin-selection.ini" "plugins" "imu-attitude"
   ReadINIStr $PluginMemory "$INSTDIR\resources\plugin-selection.ini" "plugins" "memory-image"
   ReadINIStr $PluginTemplate "$INSTDIR\resources\plugin-selection.ini" "plugins" "pnx-template"
   ReadINIStr $PluginSystemId "$INSTDIR\resources\plugin-selection.ini" "plugins" "system-identification"
+  ClearErrors
+  ReadINIStr $0 "$INSTDIR\resources\plugin-selection.ini" "plugins" "embedded-setup"
+  IfErrors +2 0
+  StrCpy $PluginSetup $0
   done:
 FunctionEnd
 
@@ -62,6 +69,9 @@ Function PluginSelectionPage
   ${NSD_CreateCheckbox} 4u 102u 95% 12u "Gimbal System Identification"
   Pop $PluginSystemIdControl
   ${NSD_SetState} $PluginSystemIdControl $PluginSystemId
+  ${NSD_CreateCheckbox} 4u 120u 95% 12u "Embedded Environment Setup"
+  Pop $PluginSetupControl
+  ${NSD_SetState} $PluginSetupControl $PluginSetup
   nsDialogs::Show
 FunctionEnd
 
@@ -71,6 +81,7 @@ Function PluginSelectionLeave
   ${NSD_GetState} $PluginMemoryControl $PluginMemory
   ${NSD_GetState} $PluginTemplateControl $PluginTemplate
   ${NSD_GetState} $PluginSystemIdControl $PluginSystemId
+  ${NSD_GetState} $PluginSetupControl $PluginSetup
 FunctionEnd
 
 !macro customInstall
@@ -80,6 +91,7 @@ FunctionEnd
   WriteINIStr "$INSTDIR\resources\plugin-selection.ini" "plugins" "memory-image" "$PluginMemory"
   WriteINIStr "$INSTDIR\resources\plugin-selection.ini" "plugins" "pnx-template" "$PluginTemplate"
   WriteINIStr "$INSTDIR\resources\plugin-selection.ini" "plugins" "system-identification" "$PluginSystemId"
+  WriteINIStr "$INSTDIR\resources\plugin-selection.ini" "plugins" "embedded-setup" "$PluginSetup"
   ${If} $PluginCsv != ${BST_CHECKED}
     RMDir /r "$INSTDIR\resources\plugins\csv-recorder"
   ${EndIf}
@@ -91,6 +103,9 @@ FunctionEnd
   ${EndIf}
   ${If} $PluginTemplate != ${BST_CHECKED}
     RMDir /r "$INSTDIR\resources\plugins\pnx-template"
+  ${EndIf}
+  ${If} $PluginSetup != ${BST_CHECKED}
+    RMDir /r "$INSTDIR\resources\plugins\embedded-setup"
   ${EndIf}
   ${If} $PluginSystemId != ${BST_CHECKED}
     RMDir /r "$INSTDIR\resources\plugins\system-identification"

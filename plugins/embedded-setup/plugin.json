@@ -1,0 +1,13 @@
+{
+  "id": "embedded-setup",
+  "name": "Embedded Environment Setup",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "Discover and configure embedded development tools on Windows, macOS and Linux.",
+  "main": "main.cjs",
+  "renderer": "renderer.js",
+  "contributes": {
+    "views": [{ "id": "view", "title": "Embedded Environment Setup", "location": "editor" }],
+    "commands": [{ "id": "embedded-setup:open", "title": "Open Embedded Environment Setup" }]
+  }
+}
